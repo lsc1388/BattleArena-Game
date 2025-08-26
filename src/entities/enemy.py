@@ -29,7 +29,7 @@ class Enemy:
     move_pattern (str): 移動模式類型\n
     """
 
-    def __init__(self, x, y, difficulty="medium"):
+    def __init__(self, x, y, difficulty="medium", enemy_type="robot"):
         """
         初始化AI敵人\n
         \n
@@ -37,6 +37,7 @@ class Enemy:
         x (float): 初始 X 座標位置\n
         y (float): 初始 Y 座標位置\n
         difficulty (str): AI難度等級，可選 'weak', 'medium', 'strong'\n
+        enemy_type (str): 敵人類型，可選 'robot', 'alien', 'zombie'\n
         """
         # 位置和尺寸設定
         self.x = x
@@ -44,22 +45,29 @@ class Enemy:
         self.width = ENEMY_SIZE
         self.height = ENEMY_SIZE
 
+        # 敵人類型設定
+        self.enemy_type = enemy_type
+        self.enemy_config = ENEMY_CHARACTERS[enemy_type]
+
         # 難度設定
         self.difficulty = difficulty
         self.config = AI_CONFIGS[difficulty]
 
-        # 生命值設定
-        self.max_health = self.config["health"]
+        # 生命值設定（根據敵人類型調整）
+        base_health = self.config["health"]
+        self.max_health = int(base_health * self.enemy_config["health_multiplier"])
         self.health = self.max_health
         self.is_alive = True
 
-        # 移動相關
-        self.speed = ENEMY_SPEEDS[difficulty]
+        # 移動相關（根據敵人類型調整）
+        base_speed = ENEMY_SPEEDS[difficulty]
+        self.speed = base_speed * self.enemy_config["speed_multiplier"]
         self.velocity_x = 0
         self.velocity_y = 0
 
-        # 戰鬥相關
-        self.accuracy = self.config["accuracy"]
+        # 戰鬥相關（根據敵人類型調整）
+        base_accuracy = self.config["accuracy"]
+        self.accuracy = base_accuracy * self.enemy_config["accuracy_multiplier"]
         self.fire_rate = self.config["fire_rate"]
         self.last_shot_time = 0
 
@@ -482,10 +490,10 @@ class Enemy:
         """
         繪製敵人\n
         \n
-        根據難度和狀態顯示不同顏色：\n
-        - 弱AI：綠色\n
-        - 中AI：橙色\n
-        - 強AI：紅色\n
+        根據敵人類型和難度顯示不同顏色：\n
+        - 機器人：灰色系\n
+        - 外星人：綠色系\n
+        - 殭屍：棕色系\n
         - 受傷狀態：顏色變暗\n
         \n
         參數:\n
@@ -494,19 +502,17 @@ class Enemy:
         if not self.is_alive:
             return
 
-        # 根據難度決定基本顏色
-        if self.difficulty == "weak":
-            base_color = COLORS["green"]
-        elif self.difficulty == "medium":
-            base_color = COLORS["orange"]
-        else:  # strong
-            base_color = COLORS["red"]
+        # 根據敵人類型決定基本顏色
+        base_color = self.enemy_config["color"]
 
         # 根據血量調整顏色深度
         health_ratio = self.health / self.max_health
         if health_ratio < 0.5:
             # 血量低時顏色變暗
             base_color = tuple(int(c * 0.7) for c in base_color)
+        elif health_ratio < 0.25:
+            # 血量極低時更暗
+            base_color = tuple(int(c * 0.4) for c in base_color)
 
         # 畫敵人方塊
         pygame.draw.rect(screen, base_color, (self.x, self.y, self.width, self.height))

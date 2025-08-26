@@ -175,6 +175,18 @@ class PowerUp:
             effect_color = COLORS["yellow"]
             self._draw_scatter_effect(screen, draw_x, draw_y, main_color, effect_color)
 
+        elif self.powerup_type == "machinegun_powerup":
+            # 機關槍：深紅色系
+            main_color = (150, 0, 0)  # 深紅色
+            effect_color = COLORS["red"]
+            self._draw_weapon_effect(screen, draw_x, draw_y, main_color, effect_color)
+
+        elif self.powerup_type == "submachinegun_powerup":
+            # 衝鋒槍：深藍色系
+            main_color = (0, 0, 150)  # 深藍色
+            effect_color = COLORS["blue"]
+            self._draw_weapon_effect(screen, draw_x, draw_y, main_color, effect_color)
+
         # 繪製主體方塊
         pygame.draw.rect(screen, main_color, (draw_x, draw_y, self.size, self.size))
 
@@ -218,6 +230,26 @@ class PowerUp:
             pygame.draw.line(
                 screen, effect_color, (center_x, center_y), (int(end_x), int(end_y)), 2
             )
+
+    def _draw_weapon_effect(self, screen, x, y, main_color, effect_color):
+        """繪製武器道具的特殊效果"""
+        # 繪製武器圖標效果
+        center_x = int(x + self.size // 2)
+        center_y = int(y + self.size // 2)
+
+        # 繪製武器形狀（簡單的矩形代表槍械）
+        weapon_width = self.size // 3
+        weapon_height = self.size // 6
+        weapon_x = center_x - weapon_width // 2
+        weapon_y = center_y - weapon_height // 2
+
+        pygame.draw.rect(
+            screen, effect_color, (weapon_x, weapon_y, weapon_width, weapon_height)
+        )
+
+        # 繪製發光效果
+        glow_radius = self.size // 2 + int(abs(math.sin(self.pulse_timer * 0.15)) * 8)
+        pygame.draw.circle(screen, effect_color, (center_x, center_y), glow_radius, 1)
 
     def get_rect(self):
         """
@@ -484,6 +516,8 @@ class PowerUpManager:
             "fire_boost": 0,
             "ammo_refill": 0,
             "scatter_shot": 0,
+            "machinegun_powerup": 0,
+            "submachinegun_powerup": 0,
         }
 
         for powerup in self.powerups:
