@@ -29,7 +29,7 @@ class Player:
     is_reloading (bool): 是否正在填裝彈藥\n
     """
 
-    def __init__(self, x, y, max_health=PLAYER_DEFAULT_HEALTH, character_type="cat"):
+    def __init__(self, x, y, max_health=PLAYER_DEFAULT_HEALTH):
         """
         初始化玩家角色\n
         \n
@@ -37,17 +37,12 @@ class Player:
         x (float): 初始 X 座標位置\n
         y (float): 初始 Y 座標位置\n
         max_health (int): 最大生命值，預設為 100，範圍 50-200\n
-        character_type (str): 角色類型 ('cat', 'dog', 'wolf')\n
         """
         # 位置和尺寸設定
         self.x = x
         self.y = y
         self.width = PLAYER_SIZE
         self.height = PLAYER_SIZE
-
-        # 角色設定
-        self.character_type = character_type
-        self.character_config = PLAYER_CHARACTERS[character_type]
 
         # 生命值設定
         self.max_health = max_health
@@ -78,9 +73,6 @@ class Player:
 
         # 輸入狀態追蹤
         self.keys_pressed = set()
-
-        # 場景效果
-        self.scene_modifiers = {}
 
     def _init_weapons(self):
         """
@@ -136,34 +128,31 @@ class Player:
         mouse_pos (tuple): 滑鼠位置座標 (x, y)\n
         """
         mouse_x, mouse_y = mouse_pos
-        
+
         # 計算玩家中心點
         player_center_x = self.x + self.width // 2
         player_center_y = self.y + self.height // 2
-        
+
         # 計算滑鼠與玩家的距離
         distance_x = mouse_x - player_center_x
         distance_y = mouse_y - player_center_y
-        
+
         # 計算總距離
         total_distance = math.sqrt(distance_x**2 + distance_y**2)
-        
+
         # 如果滑鼠離玩家太近就不移動，避免震盪
         if total_distance < 20:
             return
-            
+
         # 計算移動方向（單位向量）
         if total_distance > 0:
             direction_x = distance_x / total_distance
             direction_y = distance_y / total_distance
-            
-            # 獲取考慮場景效果的實際速度
-            effective_speed = self.get_effective_speed()
-            
+
             # 設定移動速度
-            self.velocity_x = direction_x * effective_speed
-            self.velocity_y = direction_y * effective_speed
-            
+            self.velocity_x = direction_x * self.speed
+            self.velocity_y = direction_y * self.speed
+
             # 記錄移動方向（用於UI顯示等）
             if abs(direction_x) > abs(direction_y):
                 if direction_x > 0:
@@ -175,7 +164,7 @@ class Player:
                     self.keys_pressed.add("down")
                 else:
                     self.keys_pressed.add("up")
-                    
+
     def _handle_keyboard_movement(self, keys):
         """
         處理鍵盤移動控制（WASD）\n
@@ -183,27 +172,24 @@ class Player:
         參數:\n
         keys (pygame.key): pygame 按鍵狀態物件\n
         """
-        # 獲取考慮場景效果的實際速度
-        effective_speed = self.get_effective_speed()
-        
         # 檢查移動按鍵（WASD）
         if keys[KEYS["move_left"]]:
-            self.velocity_x = -effective_speed
+            self.velocity_x = -self.speed
             self.keys_pressed.add("left")
         if keys[KEYS["move_right"]]:
-            self.velocity_x = effective_speed
+            self.velocity_x = self.speed
             self.keys_pressed.add("right")
         if keys[KEYS["move_up"]]:
-            self.velocity_y = -effective_speed
+            self.velocity_y = -self.speed
             self.keys_pressed.add("up")
         if keys[KEYS["move_down"]]:
-            self.velocity_y = effective_speed
+            self.velocity_y = self.speed
             self.keys_pressed.add("down")
 
         # 斜向移動時速度調整（讓斜向移動不會比較快）
         if self.velocity_x != 0 and self.velocity_y != 0:
             # 用畢氏定理算出斜向移動時應該要多慢
-            diagonal_speed = effective_speed / math.sqrt(2)
+            diagonal_speed = self.speed / math.sqrt(2)
             if self.velocity_x > 0:
                 self.velocity_x = diagonal_speed
             else:
@@ -397,17 +383,13 @@ class Player:
 
     def use_skill(self):
         """
-        使用角色專屬技能\n
-        \n
-        根據角色類型使用不同的技能：\n
-        - 貓：雷射光束（直線穿透攻擊）\n
-        - 狗：火焰風暴（區域持續傷害）\n
-        - 狼：冰霜爆發（凍結+範圍傷害）\n
+        使用特殊技能 - 全螢幕範圍攻擊\n
         \n
         技能效果：\n
         - 冷卻時間：2分鐘（120秒）\n
         - 生命值消耗：10%當前最大生命值\n
-        - 攻擊範圍：根據角色技能而定\n
+        - 攻擊範圍：整個視窗\n
+        - 傷害：對所有敵人造成大量傷害\n
         \n
         回傳:\n
         dict: 技能使用結果，包含是否成功和技能資訊\n
@@ -416,11 +398,6 @@ class Player:
 
         # 檢查技能冷卻時間（2分鐘 = 120000毫秒）
         skill_cooldown_duration = 120000
-        
-        # 場景效果：冰原場景技能冷卻-20%
-        if "skill_cooldown_modifier" in self.scene_modifiers:
-            skill_cooldown_duration *= self.scene_modifiers["skill_cooldown_modifier"]
-
         if current_time - self.last_skill_time < skill_cooldown_duration:
             return {"success": False, "reason": "技能冷卻中"}
 
@@ -436,19 +413,16 @@ class Player:
         if self.health <= 0:
             self.health = 1
 
-        # 獲取角色技能配置
-        skill_config = self.character_config
+        # 啟動技能效果
+        skill_damage = 200  # 技能傷害值
         self.last_skill_time = current_time
 
         return {
             "success": True,
-            "character_type": self.character_type,
-            "skill_type": skill_config["skill_type"],
-            "skill_name": skill_config["skill_name"],
-            "damage": skill_config["skill_damage"],
-            "range": skill_config["skill_range"],
+            "damage": skill_damage,
+            "range": "fullscreen",  # 全螢幕範圍
+            "effect_type": "area_damage",
             "health_cost": skill_cost,
-            "description": skill_config["skill_description"],
         }
 
     def apply_powerup(self, powerup_type):
@@ -591,8 +565,8 @@ class Player:
         """
         繪製玩家角色\n
         \n
-        根據當前狀態和角色類型顯示不同顏色：\n
-        - 正常：使用角色專屬顏色\n
+        根據當前狀態顯示不同顏色：\n
+        - 正常：藍色\n
         - 填裝中：黃色\n
         - 技能狀態：紫色\n
         - 生命值低：紅色\n
@@ -601,7 +575,7 @@ class Player:
         screen (pygame.Surface): 遊戲畫面物件\n
         """
         # 根據狀態決定顏色
-        color = self.character_config["color"]  # 使用角色專屬顏色
+        color = COLORS["blue"]  # 預設藍色
 
         if "skill_boost" in self.powerups:
             color = COLORS["purple"]  # 技能狀態用紫色
@@ -672,35 +646,6 @@ class Player:
                     )
 
         return active_powerups
-
-    def apply_scene_effects(self, scene_config):
-        """
-        套用場景效果\n
-        \n
-        參數:\n
-        scene_config (dict): 場景配置\n
-        """
-        self.scene_modifiers = {}
-        
-        # 高山場景：移動速度+15%
-        if "movement_speed_modifier" in scene_config:
-            self.scene_modifiers["movement_speed_modifier"] = scene_config["movement_speed_modifier"]
-            
-        # 冰原場景：技能冷卻-20%
-        if "skill_cooldown_modifier" in scene_config:
-            self.scene_modifiers["skill_cooldown_modifier"] = scene_config["skill_cooldown_modifier"]
-
-    def get_effective_speed(self):
-        """
-        獲取考慮場景效果後的實際移動速度\n
-        \n
-        回傳:\n
-        float: 實際移動速度\n
-        """
-        base_speed = self.speed
-        if "movement_speed_modifier" in self.scene_modifiers:
-            base_speed *= self.scene_modifiers["movement_speed_modifier"]
-        return base_speed
 
     def get_skill_cooldown_info(self):
         """
