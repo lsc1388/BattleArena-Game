@@ -20,12 +20,58 @@ COLORS = {
     "purple": (128, 0, 128),
     "gray": (128, 128, 128),
     "dark_gray": (64, 64, 64),
+    "cyan": (0, 200, 200),
+    "light_blue": (150, 200, 255),
 }
 
 # 玩家設定
 PLAYER_SIZE = 40
 PLAYER_SPEED = 5
 PLAYER_DEFAULT_HEALTH = 100
+
+######################角色與場景設定######################
+
+# 玩家角色設定（貓/狗/狼）
+PLAYER_ROLES = {
+    "cat": {"name": "貓", "color": (80, 150, 255)},
+    "dog": {"name": "狗", "color": (255, 150, 80)},
+    "wolf": {"name": "狼", "color": (180, 180, 255)},
+}
+
+# 敵人種類（機器人/外星人/殭屍）
+ENEMY_TYPES = {
+    "robot": {"name": "機器人", "color": (180, 180, 180)},
+    "alien": {"name": "外星人", "color": (120, 255, 120)},
+    "zombie": {"name": "殭屍", "color": (150, 200, 150)},
+}
+
+# 場景設定（岩漿/高山/冰原）
+SCENE_CONFIGS = {
+    "magma": {
+        "name": "岩漿場景",
+        "background": (20, 10, 10),
+        "accent": (200, 50, 0),
+        # 輕微環境效果：每秒對所有單位造成 1 傷害（模擬炎熱環境）
+        "env_damage_per_sec": 1,
+        "speed_multiplier": 1.0,
+    },
+    "mountain": {
+        "name": "高山場景",
+        "background": (15, 20, 25),
+        "accent": (120, 120, 120),
+        # 無持續傷害，保持標準速度
+        "env_damage_per_sec": 0,
+        "speed_multiplier": 1.0,
+    },
+    "ice": {
+        "name": "冰原場景",
+        "background": (10, 20, 35),
+        "accent": (120, 180, 255),
+        # 冰原讓移動更滑，給玩家一點速度加成
+        "env_damage_per_sec": 0,
+        "speed_multiplier": 1.1,
+    },
+}
 
 # 敵人設定
 ENEMY_SIZE = 35
@@ -140,6 +186,22 @@ AI_CONFIGS = {
     },
 }
 
+######################技能設定######################
+
+# 不同角色對應的技能參數（皆為全螢幕範圍，冷卻與血量消耗統一）
+SKILL_CONFIGS = {
+    "cooldown_ms": 120000,  # 2 分鐘
+    "hp_cost_ratio": 0.1,   # 扣最大生命 10%
+    "roles": {
+        # 貓：雷射技能，瞬間高傷害
+        "cat": {"type": "laser", "damage": 260},
+        # 狗：火焰技能，附加燃燒持續傷害
+        "dog": {"type": "fire", "damage": 120, "burn_dps": 8, "burn_duration_ms": 5000},
+        # 狼：冰凍技能，減速/定身效果
+        "wolf": {"type": "ice", "damage": 80, "freeze_duration_ms": 3500, "slow_ratio": 0.2},
+    },
+}
+
 # 字體設定
 FONT_CONFIGS = {
     "chinese_fonts": [
@@ -168,8 +230,8 @@ KEYS = {
     "weapon_4": pygame.K_4,
     "weapon_5": pygame.K_5,
     "skill": pygame.K_q,
-    # 滑鼠控制相關
-    "mouse_fire": 1,  # 滑鼠右鍵（pygame.BUTTON_RIGHT）
+    # 滑鼠控制相關（索引：0左鍵、1中鍵、2右鍵）
+    "mouse_fire": 0,
 }
 
 # 遊戲狀態
