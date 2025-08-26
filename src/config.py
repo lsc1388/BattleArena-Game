@@ -20,58 +20,14 @@ COLORS = {
     "purple": (128, 0, 128),
     "gray": (128, 128, 128),
     "dark_gray": (64, 64, 64),
-    "cyan": (0, 200, 200),
-    "light_blue": (150, 200, 255),
+    "cyan": (0, 255, 255),
+    "brown": (139, 69, 19),
 }
 
 # 玩家設定
 PLAYER_SIZE = 40
 PLAYER_SPEED = 5
 PLAYER_DEFAULT_HEALTH = 100
-
-######################角色與場景設定######################
-
-# 玩家角色設定（貓/狗/狼）
-PLAYER_ROLES = {
-    "cat": {"name": "貓", "color": (80, 150, 255)},
-    "dog": {"name": "狗", "color": (255, 150, 80)},
-    "wolf": {"name": "狼", "color": (180, 180, 255)},
-}
-
-# 敵人種類（機器人/外星人/殭屍）
-ENEMY_TYPES = {
-    "robot": {"name": "機器人", "color": (180, 180, 180)},
-    "alien": {"name": "外星人", "color": (120, 255, 120)},
-    "zombie": {"name": "殭屍", "color": (150, 200, 150)},
-}
-
-# 場景設定（岩漿/高山/冰原）
-SCENE_CONFIGS = {
-    "magma": {
-        "name": "岩漿場景",
-        "background": (20, 10, 10),
-        "accent": (200, 50, 0),
-        # 輕微環境效果：每秒對所有單位造成 1 傷害（模擬炎熱環境）
-        "env_damage_per_sec": 1,
-        "speed_multiplier": 1.0,
-    },
-    "mountain": {
-        "name": "高山場景",
-        "background": (15, 20, 25),
-        "accent": (120, 120, 120),
-        # 無持續傷害，保持標準速度
-        "env_damage_per_sec": 0,
-        "speed_multiplier": 1.0,
-    },
-    "ice": {
-        "name": "冰原場景",
-        "background": (10, 20, 35),
-        "accent": (120, 180, 255),
-        # 冰原讓移動更滑，給玩家一點速度加成
-        "env_damage_per_sec": 0,
-        "speed_multiplier": 1.1,
-    },
-}
 
 # 敵人設定
 ENEMY_SIZE = 35
@@ -134,30 +90,65 @@ WEAPON_CONFIGS = {
 
 # 驚喜包設定
 POWERUP_SIZE = 20
-POWERUP_SPAWN_CHANCE = 0.1  # 10%掉落機率
+POWERUP_SPAWN_CHANCE = 0.15  # 15%掉落機率（提高掉落率）
 POWERUP_EFFECTS = {
     "fire_boost": {
         "name": "火力增強",
-        "duration": 5000,  # 毫秒
+        "emoji": "🔥",
+        "duration": 8000,  # 8秒
         "damage_multiplier": 1.5,
+        "color": (255, 69, 0),
+        "description": "提升50%攻擊力",
     },
-    "ammo_refill": {"name": "彈藥補給", "instant": True},  # 立即效果
+    "ammo_refill": {
+        "name": "彈藥補給", 
+        "emoji": "🎯",
+        "instant": True,
+        "color": (0, 255, 255),
+        "description": "補滿所有彈藥",
+    },
     "scatter_shot": {
         "name": "散彈模式",
-        "duration": 8000,
-        "bullet_count": 5,  # 一次發射五顆子彈
+        "emoji": "💥", 
+        "duration": 10000,  # 10秒
+        "bullet_count": 5,
+        "spread_angle": 25,
+        "color": (255, 215, 0),
+        "description": "一次發射五顆子彈",
+    },
+    "health_pack": {
+        "name": "醫療包",
+        "emoji": "❤️",
+        "instant": True,
+        "heal_amount": 30,
+        "color": (255, 20, 147),
+        "description": "回復30點生命值",
+    },
+    "speed_boost": {
+        "name": "速度提升",
+        "emoji": "⚡",
+        "duration": 6000,  # 6秒
+        "speed_multiplier": 1.5,
+        "color": (255, 255, 0),
+        "description": "提升50%移動速度",
     },
     "machinegun_powerup": {
         "name": "機關槍",
+        "emoji": "🔫",
         "instant": True,
         "weapon_unlock": "machinegun",
-        "ammo_bonus": 200,  # 額外彈藥
+        "ammo_bonus": 200,
+        "color": (128, 128, 128),
+        "description": "解鎖機關槍+200發彈藥",
     },
     "submachinegun_powerup": {
         "name": "衝鋒槍",
+        "emoji": "🏹",
         "instant": True,
-        "weapon_unlock": "submachinegun",
-        "ammo_bonus": 120,  # 額外彈藥
+        "weapon_unlock": "submachinegun", 
+        "ammo_bonus": 120,
+        "color": (75, 0, 130),
+        "description": "解鎖衝鋒槍+120發彈藥",
     },
 }
 
@@ -169,6 +160,7 @@ AI_CONFIGS = {
         "accuracy": 0.3,  # 瞄準精確度
         "fire_rate": 1000,  # 攻擊頻率(毫秒)
         "move_pattern": "simple",  # 移動模式
+        "preferred_enemy_type": "zombie",  # 偏好的敵人類型
     },
     "medium": {
         "name": "中",
@@ -176,6 +168,7 @@ AI_CONFIGS = {
         "accuracy": 0.6,
         "fire_rate": 700,
         "move_pattern": "tactical",
+        "preferred_enemy_type": "robot",
     },
     "strong": {
         "name": "強",
@@ -183,22 +176,31 @@ AI_CONFIGS = {
         "accuracy": 0.8,
         "fire_rate": 500,
         "move_pattern": "advanced",
+        "preferred_enemy_type": "alien",
     },
 }
 
-######################技能設定######################
-
-# 不同角色對應的技能參數（皆為全螢幕範圍，冷卻與血量消耗統一）
-SKILL_CONFIGS = {
-    "cooldown_ms": 120000,  # 2 分鐘
-    "hp_cost_ratio": 0.1,   # 扣最大生命 10%
-    "roles": {
-        # 貓：雷射技能，瞬間高傷害
-        "cat": {"type": "laser", "damage": 260},
-        # 狗：火焰技能，附加燃燒持續傷害
-        "dog": {"type": "fire", "damage": 120, "burn_dps": 8, "burn_duration_ms": 5000},
-        # 狼：冰凍技能，減速/定身效果
-        "wolf": {"type": "ice", "damage": 80, "freeze_duration_ms": 3500, "slow_ratio": 0.2},
+# 敵人特殊能力設定
+ENEMY_ABILITIES = {
+    "precision_shooting": {
+        "name": "精密射擊",
+        "accuracy_bonus": 0.2,
+        "fire_rate_bonus": 0.8,
+        "description": "提升瞄準精度和射擊頻率",
+    },
+    "energy_shield": {
+        "name": "能量護盾",
+        "damage_reduction": 0.3,
+        "shield_duration": 3000,
+        "cooldown": 10000,
+        "description": "定期啟動護盾減少30%傷害",
+    },
+    "regeneration": {
+        "name": "生命再生",
+        "heal_rate": 2,  # 每秒回復
+        "heal_interval": 1000,
+        "max_heal_percent": 0.5,  # 最多回復至50%血量
+        "description": "緩慢回復生命值",
     },
 }
 
@@ -230,13 +232,163 @@ KEYS = {
     "weapon_4": pygame.K_4,
     "weapon_5": pygame.K_5,
     "skill": pygame.K_q,
-    # 滑鼠控制相關（索引：0左鍵、1中鍵、2右鍵）
-    "mouse_fire": 0,
+    # 選單導航
+    "select": pygame.K_RETURN,
+    "back": pygame.K_ESCAPE,
+    "up": pygame.K_UP,
+    "down": pygame.K_DOWN,
+    "left": pygame.K_LEFT,
+    "right": pygame.K_RIGHT,
+}
+
+# 滑鼠控制設定
+MOUSE_CONTROLS = {
+    "move": "position",           # 滑鼠位置控制移動
+    "fire": "left_button",        # 左鍵射擊
+    "restart": "right_button",    # 右鍵重開
+    "menu": "middle_button",      # 中鍵選單
+}
+
+# 角色類型設定
+CHARACTER_TYPES = {
+    "cat": {
+        "name": "貓",
+        "emoji": "🐱",
+        "skill_name": "雷射技能",
+        "skill_effect": "laser",
+        "color": (255, 192, 203),  # 粉紅色
+        "description": "敏捷的雷射射手",
+    },
+    "dog": {
+        "name": "狗",
+        "emoji": "🐶", 
+        "skill_name": "火焰技能",
+        "skill_effect": "fire",
+        "color": (255, 140, 0),  # 橘色
+        "description": "忠誠的火焰戰士",
+    },
+    "wolf": {
+        "name": "狼",
+        "emoji": "🐺",
+        "skill_name": "冰凍技能", 
+        "skill_effect": "ice",
+        "color": (173, 216, 230),  # 淺藍色
+        "description": "冷酷的冰霜獵手",
+    },
+}
+
+# 敵人角色類型設定
+ENEMY_TYPES = {
+    "robot": {
+        "name": "機器人",
+        "emoji": "🤖",
+        "color": (128, 128, 128),  # 灰色
+        "description": "冷酷的機械戰士",
+        "special_ability": "precision_shooting",
+    },
+    "alien": {
+        "name": "外星人", 
+        "emoji": "👽",
+        "color": (0, 255, 0),  # 綠色
+        "description": "神秘的外星侵略者",
+        "special_ability": "energy_shield",
+    },
+    "zombie": {
+        "name": "殭屍",
+        "emoji": "🧟",
+        "color": (139, 69, 19),  # 棕色
+        "description": "不死的恐怖生物", 
+        "special_ability": "regeneration",
+    },
+}
+
+# 場景設定
+SCENE_CONFIGS = {
+    "lava": {
+        "name": "岩漿場景",
+        "emoji": "🌋",
+        "background_color": (139, 0, 0),  # 深紅色
+        "accent_color": (255, 69, 0),     # 紅橘色
+        "description": "炙熱的火山環境",
+        "environmental_effect": {
+            "name": "熱浪",
+            "damage_over_time": 2,
+            "interval": 5000,  # 每5秒
+        },
+    },
+    "mountain": {
+        "name": "高山場景", 
+        "emoji": "⛰️",
+        "background_color": (105, 105, 105),  # 暗灰色
+        "accent_color": (255, 255, 255),      # 白色
+        "description": "崎嶇的山岳地形",
+        "environmental_effect": {
+            "name": "稀薄空氣",
+            "movement_penalty": 0.8,  # 移動速度減少20%
+        },
+    },
+    "ice": {
+        "name": "冰原場景",
+        "emoji": "🧊", 
+        "background_color": (176, 196, 222),  # 淺鋼藍色
+        "accent_color": (135, 206, 250),      # 天空藍
+        "description": "嚴寒的冰雪世界",
+        "environmental_effect": {
+            "name": "寒風",
+            "accuracy_penalty": 0.9,  # 瞄準精度降低10%
+        },
+    },
+}
+
+# 技能效果設定
+SKILL_EFFECTS = {
+    "laser": {
+        "name": "雷射光束",
+        "damage": 200,
+        "visual_effect": "laser_beam",
+        "color": (255, 255, 0),  # 黃色
+        "duration": 1000,  # 毫秒
+        "sound_effect": "laser_zap",
+    },
+    "fire": {
+        "name": "火焰爆發", 
+        "damage": 180,
+        "visual_effect": "fire_explosion",
+        "color": (255, 0, 0),  # 紅色
+        "duration": 1500,
+        "sound_effect": "fire_blast",
+        "dot_damage": 20,  # 持續傷害
+        "dot_duration": 3000,
+    },
+    "ice": {
+        "name": "冰凍風暴",
+        "damage": 160, 
+        "visual_effect": "ice_storm",
+        "color": (0, 191, 255),  # 深天空藍
+        "duration": 2000,
+        "sound_effect": "ice_crack",
+        "slow_effect": 0.5,  # 減速50%
+        "slow_duration": 5000,
+    },
+}
+
+# 技能冷卻設定
+SKILL_COOLDOWN_TIME = 120000  # 2分鐘（毫秒）
+SKILL_HEALTH_COST_PERCENT = 0.1  # 10%生命值
+
+# 血量顯示顏色設定
+HEALTH_COLORS = {
+    "high": (0, 255, 0),      # 綠色 (>60%)
+    "medium": (255, 255, 0),  # 黃色 (30%-60%)
+    "low": (255, 0, 0),       # 紅色 (<30%)
+    "critical": (255, 0, 255), # 紫色 (<10%)
 }
 
 # 遊戲狀態
 GAME_STATES = {
     "menu": "menu",
+    "character_select": "character_select",
+    "scene_select": "scene_select", 
     "playing": "playing",
     "game_over": "game_over",
     "paused": "paused",

@@ -29,7 +29,7 @@ class Player:
     is_reloading (bool): 是否正在填裝彈藥\n
     """
 
-    def __init__(self, x, y, max_health=PLAYER_DEFAULT_HEALTH):
+    def __init__(self, x, y, max_health=PLAYER_DEFAULT_HEALTH, character_type="cat"):
         """
         初始化玩家角色\n
         \n
@@ -37,12 +37,17 @@ class Player:
         x (float): 初始 X 座標位置\n
         y (float): 初始 Y 座標位置\n
         max_health (int): 最大生命值，預設為 100，範圍 50-200\n
+        character_type (str): 角色類型（'cat', 'dog', 'wolf'）\n
         """
         # 位置和尺寸設定
         self.x = x
         self.y = y
         self.width = PLAYER_SIZE
         self.height = PLAYER_SIZE
+
+        # 角色類型設定
+        self.character_type = character_type
+        self.character_config = CHARACTER_TYPES.get(character_type, CHARACTER_TYPES["cat"])
 
         # 生命值設定
         self.max_health = max_health
@@ -73,6 +78,7 @@ class Player:
 
         # 輸入狀態追蹤
         self.keys_pressed = set()
+        self.last_mouse_pos = None
 
     def _init_weapons(self):
         """
@@ -96,7 +102,7 @@ class Player:
         處理玩家輸入控制\n
         \n
         支援兩種控制模式：\n
-        1. 滑鼠控制：滑鼠位置控制移動，右鍵射擊\n
+        1. 滑鼠控制：滑鼠位置控制移動，左鍵射擊\n
         2. 鍵盤控制：WASD移動，空白鍵射擊\n
         \n
         參數:\n
@@ -111,12 +117,37 @@ class Player:
         self.velocity_x = 0
         self.velocity_y = 0
 
+        # 記錄滑鼠位置
+        if mouse_pos is not None:
+            self.last_mouse_pos = mouse_pos
+
         # 滑鼠控制模式（優先使用滑鼠控制）
         if mouse_pos is not None:
             self._handle_mouse_movement(mouse_pos)
         else:
             # 鍵盤控制模式（WASD）
             self._handle_keyboard_movement(keys)
+
+    def should_shoot(self, keys, mouse_buttons):
+        """
+        檢查是否應該射擊\n
+        \n
+        參數:\n
+        keys (pygame.key): pygame 按鍵狀態物件\n
+        mouse_buttons (tuple): 滑鼠按鍵狀態\n
+        \n
+        回傳:\n
+        bool: 是否應該射擊\n
+        """
+        # 滑鼠左鍵射擊
+        if mouse_buttons and mouse_buttons[0]:  # 左鍵（索引0）
+            return True
+            
+        # 空白鍵射擊
+        if keys[KEYS["fire"]]:
+            return True
+            
+        return False
 
     def _handle_mouse_movement(self, mouse_pos):
         """
@@ -315,14 +346,17 @@ class Player:
 
         return True
 
-    def shoot(self):
+    def shoot(self, bullet_manager=None):
         """
         執行射擊動作\n
         \n
         消耗彈藥並記錄射擊時間\n
         \n
+        參數:\n
+        bullet_manager (BulletManager): 子彈管理器，如果提供則直接創建子彈\n
+        \n
         回傳:\n
-        dict: 射擊資訊，包含子彈數量和散布角度\n
+        dict: 射擊資訊，包含子彈數量和散布角度；或 None 如果無法射擊\n
         """
         if not self.can_shoot():
             return None
@@ -335,20 +369,13 @@ class Player:
         # 記錄射擊時間
         self.last_shot_time = pygame.time.get_ticks()
 
-        # 準備射擊資料
-        shot_data = {
-            "damage": weapon_config["damage"],
-            "speed": weapon_config["bullet_speed"],
-            "bullets": [],
-        }
-
         # 檢查是否有散彈效果（散彈槍或強化效果）
         bullet_count = 1
         spread_angle = 0
 
         if weapon_config.get("spread", False):
             # 散彈槍本身的散彈效果
-            bullet_count = weapon_config["bullet_count"]
+            bullet_count = weapon_config.get("bullet_count", 5)
             spread_angle = 30  # 散彈角度範圍
         elif "scatter_shot" in self.powerups:
             # 散彈強化效果
@@ -359,6 +386,36 @@ class Player:
         damage_multiplier = 1.0
         if "fire_boost" in self.powerups:
             damage_multiplier = POWERUP_EFFECTS["fire_boost"]["damage_multiplier"]
+        
+        # 應用額外傷害修正（來自各種 powerup）
+        final_damage = int(weapon_config["damage"] * damage_multiplier)
+
+        # 射擊位置
+        shoot_x = self.x + self.width / 2
+        shoot_y = self.y
+        shoot_angle = 0  # 玩家向上射擊
+        bullet_speed = weapon_config["bullet_speed"]
+
+        # 如果有子彈管理器，直接創建子彈
+        if bullet_manager:
+            created_bullets = bullet_manager.create_scatter_shot(
+                shoot_x, shoot_y, shoot_angle, bullet_speed, 
+                final_damage, bullet_count, spread_angle, "player"
+            )
+            
+            return {
+                "bullet_count": bullet_count,
+                "damage": final_damage,
+                "speed": bullet_speed,
+                "created_bullets": created_bullets
+            }
+        
+        # 否則回傳射擊資料（向後兼容）
+        shot_data = {
+            "damage": final_damage,
+            "speed": bullet_speed,
+            "bullets": [],
+        }
 
         # 產生子彈資料
         for i in range(bullet_count):
@@ -367,15 +424,15 @@ class Player:
                 angle = 0
             else:
                 # 多發子彈，計算散布角度
-                angle_step = spread_angle / (bullet_count - 1)
+                angle_step = spread_angle / (bullet_count - 1) if bullet_count > 1 else 0
                 angle = -spread_angle / 2 + i * angle_step
 
             bullet_info = {
-                "x": self.x + self.width / 2,
-                "y": self.y,
+                "x": shoot_x,
+                "y": shoot_y,
                 "angle": angle,
-                "damage": weapon_config["damage"] * damage_multiplier,
-                "speed": weapon_config["bullet_speed"],
+                "damage": final_damage,
+                "speed": bullet_speed,
             }
             shot_data["bullets"].append(bullet_info)
 
@@ -383,13 +440,13 @@ class Player:
 
     def use_skill(self):
         """
-        使用特殊技能 - 全螢幕範圍攻擊\n
+        使用角色專屬技能 - 全螢幕範圍攻擊\n
         \n
         技能效果：\n
         - 冷卻時間：2分鐘（120秒）\n
         - 生命值消耗：10%當前最大生命值\n
         - 攻擊範圍：整個視窗\n
-        - 傷害：對所有敵人造成大量傷害\n
+        - 傷害：根據角色類型而定\n
         \n
         回傳:\n
         dict: 技能使用結果，包含是否成功和技能資訊\n
@@ -397,12 +454,11 @@ class Player:
         current_time = pygame.time.get_ticks()
 
         # 檢查技能冷卻時間（2分鐘 = 120000毫秒）
-        skill_cooldown_duration = 120000
-        if current_time - self.last_skill_time < skill_cooldown_duration:
+        if current_time - self.last_skill_time < SKILL_COOLDOWN_TIME:
             return {"success": False, "reason": "技能冷卻中"}
 
         # 檢查生命值是否足夠（需要至少10%生命值）
-        skill_cost = int(self.max_health * 0.1)
+        skill_cost = int(self.max_health * SKILL_HEALTH_COST_PERCENT)
         if self.health <= skill_cost:
             return {"success": False, "reason": "生命值不足"}
 
@@ -413,24 +469,61 @@ class Player:
         if self.health <= 0:
             self.health = 1
 
+        # 根據角色類型獲取技能效果
+        skill_effect_type = self.character_config["skill_effect"]
+        skill_effect = SKILL_EFFECTS[skill_effect_type]
+
         # 啟動技能效果
-        skill_damage = 200  # 技能傷害值
         self.last_skill_time = current_time
 
         return {
             "success": True,
-            "damage": skill_damage,
+            "skill_type": skill_effect_type,
+            "skill_name": self.character_config["skill_name"],
+            "damage": skill_effect["damage"],
             "range": "fullscreen",  # 全螢幕範圍
             "effect_type": "area_damage",
             "health_cost": skill_cost,
+            "visual_effect": skill_effect["visual_effect"],
+            "color": skill_effect["color"],
+            "duration": skill_effect["duration"],
+            "additional_effects": self._get_skill_additional_effects(skill_effect),
         }
+
+    def _get_skill_additional_effects(self, skill_effect):
+        """
+        獲取技能的額外效果\n
+        \n
+        參數:\n
+        skill_effect (dict): 技能效果配置\n
+        \n
+        回傳:\n
+        dict: 額外效果資訊\n
+        """
+        additional_effects = {}
+        
+        # 火焰技能的持續傷害
+        if "dot_damage" in skill_effect:
+            additional_effects["dot"] = {
+                "damage": skill_effect["dot_damage"],
+                "duration": skill_effect["dot_duration"],
+            }
+        
+        # 冰凍技能的減速效果
+        if "slow_effect" in skill_effect:
+            additional_effects["slow"] = {
+                "slow_factor": skill_effect["slow_effect"],
+                "duration": skill_effect["slow_duration"],
+            }
+            
+        return additional_effects
 
     def apply_powerup(self, powerup_type):
         """
         套用強化效果\n
         \n
         參數:\n
-        powerup_type (str): 強化類型（'fire_boost', 'ammo_refill', 'scatter_shot', 'machinegun_powerup', 'submachinegun_powerup'）\n
+        powerup_type (str): 強化類型\n
         """
         current_time = pygame.time.get_ticks()
 
@@ -440,6 +533,13 @@ class Player:
                 weapon_config = WEAPON_CONFIGS[weapon_type]
                 weapon_state["current_ammo"] = weapon_config["max_ammo"]
                 weapon_state["total_ammo"] = weapon_config["max_ammo"] * 3
+                
+        elif powerup_type == "health_pack":
+            # 醫療包效果
+            effect_config = POWERUP_EFFECTS[powerup_type]
+            heal_amount = effect_config["heal_amount"]
+            self.heal(heal_amount)
+            
         elif powerup_type in ["machinegun_powerup", "submachinegun_powerup"]:
             # 武器解鎖效果
             effect_config = POWERUP_EFFECTS[powerup_type]
@@ -537,14 +637,21 @@ class Player:
         screen_width (int): 螢幕寬度\n
         screen_height (int): 螢幕高度\n
         """
-        # 套用技能速度加成
-        current_speed = self.speed
+        # 套用速度加成
+        current_speed_multiplier = 1.0
+        
+        # 檢查速度提升效果
+        if "speed_boost" in self.powerups:
+            speed_config = POWERUP_EFFECTS["speed_boost"]
+            current_speed_multiplier *= speed_config.get("speed_multiplier", 1.5)
+        
+        # 檢查技能速度加成
         if "skill_boost" in self.powerups:
-            current_speed *= self.powerups["skill_boost"]["speed_boost"]
+            current_speed_multiplier *= self.powerups["skill_boost"].get("speed_boost", 1.0)
 
         # 更新位置
-        self.x += self.velocity_x
-        self.y += self.velocity_y
+        self.x += self.velocity_x * current_speed_multiplier
+        self.y += self.velocity_y * current_speed_multiplier
 
         # 邊界檢查 - 不讓玩家跑出螢幕
         if self.x < 0:
@@ -565,8 +672,8 @@ class Player:
         """
         繪製玩家角色\n
         \n
-        根據當前狀態顯示不同顏色：\n
-        - 正常：藍色\n
+        根據當前狀態和角色類型顯示不同顏色：\n
+        - 正常：角色專屬顏色\n
         - 填裝中：黃色\n
         - 技能狀態：紫色\n
         - 生命值低：紅色\n
@@ -575,7 +682,7 @@ class Player:
         screen (pygame.Surface): 遊戲畫面物件\n
         """
         # 根據狀態決定顏色
-        color = COLORS["blue"]  # 預設藍色
+        color = self.character_config["color"]  # 角色專屬顏色
 
         if "skill_boost" in self.powerups:
             color = COLORS["purple"]  # 技能狀態用紫色
@@ -655,21 +762,38 @@ class Player:
         dict: 技能冷卻狀態資訊\n
         """
         current_time = pygame.time.get_ticks()
-        skill_cooldown_duration = 120000  # 2分鐘
         time_since_last_skill = current_time - self.last_skill_time
 
-        if time_since_last_skill < skill_cooldown_duration:
-            cooldown_remaining = (
-                skill_cooldown_duration - time_since_last_skill
-            ) / 1000
+        if time_since_last_skill < SKILL_COOLDOWN_TIME:
+            cooldown_remaining = (SKILL_COOLDOWN_TIME - time_since_last_skill) / 1000
             return {
                 "ready": False,
                 "cooldown_remaining": cooldown_remaining,
-                "total_cooldown": skill_cooldown_duration / 1000,
+                "total_cooldown": SKILL_COOLDOWN_TIME / 1000,
+                "skill_name": self.character_config["skill_name"],
+                "skill_effect": self.character_config["skill_effect"],
             }
         else:
             return {
                 "ready": True,
                 "cooldown_remaining": 0,
-                "total_cooldown": skill_cooldown_duration / 1000,
+                "total_cooldown": SKILL_COOLDOWN_TIME / 1000,
+                "skill_name": self.character_config["skill_name"],
+                "skill_effect": self.character_config["skill_effect"],
             }
+
+    def get_character_info(self):
+        """
+        取得角色資訊\n
+        \n
+        回傳:\n
+        dict: 角色資訊\n
+        """
+        return {
+            "type": self.character_type,
+            "name": self.character_config["name"],
+            "emoji": self.character_config["emoji"],
+            "skill_name": self.character_config["skill_name"],
+            "description": self.character_config["description"],
+            "color": self.character_config["color"],
+        }

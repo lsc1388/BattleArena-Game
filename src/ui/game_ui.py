@@ -93,8 +93,8 @@ class GameUI:
         # 繪製分數和統計
         self._draw_score_and_stats(screen, score, game_stats)
 
-        # 繪製技能冷卻
-        self._draw_skill_cooldown(screen, player)
+        # 繪製技能冷卻（使用改進版）
+        self.draw_skill_cooldown_indicator(screen, player)
 
         # 繪製敵人血量（在敵人頭上）
         self._draw_enemy_health_bars(screen, enemies)
@@ -308,7 +308,7 @@ class GameUI:
 
     def _draw_enemy_health_bars(self, screen, enemies):
         """
-        繪製敵人血量條（在敵人頭上）\n
+        繪製敵人血量條和數字（在敵人頭上）\n
         \n
         參數:\n
         screen (pygame.Surface): 遊戲畫面物件\n
@@ -319,10 +319,10 @@ class GameUI:
                 continue
 
             # 計算血量條位置（敵人頭上）
-            bar_width = 30
-            bar_height = 4
+            bar_width = 40
+            bar_height = 6
             bar_x = enemy.x + (enemy.width - bar_width) // 2
-            bar_y = enemy.y - 10
+            bar_y = enemy.y - 15
 
             # 計算血量比例
             health_ratio = enemy.health / enemy.max_health
@@ -346,7 +346,28 @@ class GameUI:
                     screen, health_color, (bar_x, bar_y, health_width, bar_height)
                 )
 
-    def _draw_messages(self, screen):
+            # 邊框
+            pygame.draw.rect(
+                screen, COLORS["white"], (bar_x, bar_y, bar_width, bar_height), 1
+            )
+
+            # 血量數字（在血條下方）
+            health_text = f"{enemy.health}/{enemy.max_health}"
+            health_surface = self.font_small.render(health_text, True, COLORS["white"])
+            health_rect = health_surface.get_rect()
+            health_rect.centerx = bar_x + bar_width // 2
+            health_rect.y = bar_y + bar_height + 2
+            screen.blit(health_surface, health_rect)
+
+            # 敵人類型標示（如果有）
+            if hasattr(enemy, 'enemy_type') and enemy.enemy_type:
+                type_emoji = {"robot": "🤖", "alien": "👽", "zombie": "🧟"}.get(enemy.enemy_type, "")
+                if type_emoji:
+                    type_surface = self.font_small.render(type_emoji, True, COLORS["white"])
+                    type_rect = type_surface.get_rect()
+                    type_rect.centerx = bar_x + bar_width // 2
+                    type_rect.y = bar_y - 25
+                    screen.blit(type_surface, type_rect)
         """
         繪製訊息提示\n
         \n
@@ -504,3 +525,230 @@ class GameUI:
             center=(self.screen_width // 2, self.screen_height // 2 + 50)
         )
         screen.blit(restart_surface, restart_rect)
+
+    def draw_character_selection_menu(self, screen, selected_character=None):
+        """
+        繪製角色選擇選單\n
+        \n
+        參數:\n
+        screen (pygame.Surface): 遊戲畫面物件\n
+        selected_character (str): 當前選中的角色類型\n
+        """
+        # 半透明背景
+        overlay = pygame.Surface((self.screen_width, self.screen_height))
+        overlay.set_alpha(200)
+        overlay.fill(COLORS["black"])
+        screen.blit(overlay, (0, 0))
+
+        # 標題
+        title_text = "選擇你的角色"
+        title_surface = self.font_large.render(title_text, True, COLORS["white"])
+        title_rect = title_surface.get_rect(
+            center=(self.screen_width // 2, 150)
+        )
+        screen.blit(title_surface, title_rect)
+
+        # 角色選項
+        characters = [
+            {"type": "cat", "name": "貓咪🐱", "skill": "雷射攻擊", "color": COLORS["yellow"]},
+            {"type": "dog", "name": "狗狗🐶", "skill": "火焰攻擊", "color": COLORS["orange"]},
+            {"type": "wolf", "name": "狼🐺", "skill": "冰凍攻擊", "color": COLORS["cyan"]},
+        ]
+
+        for i, character in enumerate(characters):
+            y_pos = 250 + i * 80
+            
+            # 選中背景
+            if selected_character == character["type"]:
+                highlight_rect = pygame.Rect(
+                    self.screen_width // 2 - 200, y_pos - 30, 400, 70
+                )
+                pygame.draw.rect(screen, COLORS["dark_gray"], highlight_rect)
+                pygame.draw.rect(screen, character["color"], highlight_rect, 3)
+
+            # 角色名稱
+            name_surface = self.font_medium.render(
+                character["name"], True, character["color"]
+            )
+            name_rect = name_surface.get_rect(
+                center=(self.screen_width // 2, y_pos)
+            )
+            screen.blit(name_surface, name_rect)
+
+            # 技能說明
+            skill_text = f"專屬技能: {character['skill']}"
+            skill_surface = self.font_small.render(skill_text, True, COLORS["white"])
+            skill_rect = skill_surface.get_rect(
+                center=(self.screen_width // 2, y_pos + 25)
+            )
+            screen.blit(skill_surface, skill_rect)
+
+        # 操作提示
+        instruction_text = "使用 ↑↓ 選擇，Enter 確認"
+        instruction_surface = self.font_small.render(instruction_text, True, COLORS["gray"])
+        instruction_rect = instruction_surface.get_rect(
+            center=(self.screen_width // 2, self.screen_height - 100)
+        )
+        screen.blit(instruction_surface, instruction_rect)
+
+    def draw_scene_selection_menu(self, screen, selected_scene=None):
+        """
+        繪製場景選擇選單\n
+        \n
+        參數:\n
+        screen (pygame.Surface): 遊戲畫面物件\n
+        selected_scene (str): 當前選中的場景類型\n
+        """
+        # 半透明背景
+        overlay = pygame.Surface((self.screen_width, self.screen_height))
+        overlay.set_alpha(200)
+        overlay.fill(COLORS["black"])
+        screen.blit(overlay, (0, 0))
+
+        # 標題
+        title_text = "選擇戰鬥場景"
+        title_surface = self.font_large.render(title_text, True, COLORS["white"])
+        title_rect = title_surface.get_rect(
+            center=(self.screen_width // 2, 150)
+        )
+        screen.blit(title_surface, title_rect)
+
+        # 場景選項
+        scenes = [
+            {"type": "lava", "name": "岩漿地獄🌋", "desc": "高溫環境，火焰傷害+25%"},
+            {"type": "mountain", "name": "高山峽谷⛰️", "desc": "平衡環境，無特殊效果"},
+            {"type": "ice", "name": "冰原凍土🧊", "desc": "嚴寒環境，移動速度-15%"},
+        ]
+
+        for i, scene in enumerate(scenes):
+            y_pos = 250 + i * 80
+            
+            # 選中背景
+            if selected_scene == scene["type"]:
+                highlight_rect = pygame.Rect(
+                    self.screen_width // 2 - 250, y_pos - 30, 500, 70
+                )
+                pygame.draw.rect(screen, COLORS["dark_gray"], highlight_rect)
+                
+                # 根據場景類型選擇邊框顏色
+                border_color = {"lava": COLORS["red"], "mountain": COLORS["brown"], "ice": COLORS["cyan"]}.get(scene["type"], COLORS["white"])
+                pygame.draw.rect(screen, border_color, highlight_rect, 3)
+
+            # 場景名稱
+            name_surface = self.font_medium.render(
+                scene["name"], True, COLORS["white"]
+            )
+            name_rect = name_surface.get_rect(
+                center=(self.screen_width // 2, y_pos)
+            )
+            screen.blit(name_surface, name_rect)
+
+            # 場景描述
+            desc_surface = self.font_small.render(scene["desc"], True, COLORS["gray"])
+            desc_rect = desc_surface.get_rect(
+                center=(self.screen_width // 2, y_pos + 25)
+            )
+            screen.blit(desc_surface, desc_rect)
+
+        # 操作提示
+        instruction_text = "使用 ↑↓ 選擇，Enter 確認"
+        instruction_surface = self.font_small.render(instruction_text, True, COLORS["gray"])
+        instruction_rect = instruction_surface.get_rect(
+            center=(self.screen_width // 2, self.screen_height - 100)
+        )
+        screen.blit(instruction_surface, instruction_rect)
+
+    def draw_powerup_notification(self, screen, powerup_type, powerup_name):
+        """
+        繪製 PowerUp 撿取通知\n
+        \n
+        參數:\n
+        screen (pygame.Surface): 遊戲畫面物件\n
+        powerup_type (str): PowerUp 類型\n
+        powerup_name (str): PowerUp 名稱\n
+        """
+        # 通知位置（螢幕上方中央）
+        notification_y = 50
+        
+        # 背景框
+        text = f"獲得強化: {powerup_name}"
+        text_surface = self.font_medium.render(text, True, COLORS["white"])
+        text_width = text_surface.get_width()
+        
+        bg_rect = pygame.Rect(
+            self.screen_width // 2 - text_width // 2 - 20,
+            notification_y - 10,
+            text_width + 40,
+            30
+        )
+        
+        # 根據 PowerUp 類型選擇背景顏色
+        bg_color = POWERUP_EFFECTS.get(powerup_type, {}).get("color", COLORS["purple"])
+        pygame.draw.rect(screen, bg_color, bg_rect)
+        pygame.draw.rect(screen, COLORS["white"], bg_rect, 2)
+        
+        # 文字
+        text_rect = text_surface.get_rect(center=bg_rect.center)
+        screen.blit(text_surface, text_rect)
+
+    def draw_skill_cooldown_indicator(self, screen, player):
+        """
+        改進的技能冷卻指示器\n
+        \n
+        參數:\n
+        screen (pygame.Surface): 遊戲畫面物件\n
+        player: 玩家物件\n
+        """
+        # 技能按鍵位置（螢幕左下角）
+        skill_x = 30
+        skill_y = self.screen_height - 80
+        skill_size = 50
+
+        # 技能圖標背景
+        skill_rect = pygame.Rect(skill_x, skill_y, skill_size, skill_size)
+        
+        skill_info = player.get_skill_cooldown_info()
+        
+        # 根據技能狀態選擇顏色
+        if skill_info["ready"]:
+            bg_color = COLORS["green"]
+            text_color = COLORS["white"]
+            cooldown_text = "Q\n就緒"
+        else:
+            bg_color = COLORS["dark_gray"]
+            text_color = COLORS["red"]
+            cooldown_seconds = int(skill_info["cooldown_remaining"])
+            cooldown_text = f"Q\n{cooldown_seconds}s"
+
+        # 繪製技能圖標
+        pygame.draw.rect(screen, bg_color, skill_rect)
+        pygame.draw.rect(screen, COLORS["white"], skill_rect, 2)
+
+        # 冷卻進度條（如果在冷卻中）
+        if not skill_info["ready"]:
+            progress = 1 - (skill_info["cooldown_remaining"] / skill_info["total_cooldown"])
+            progress_height = int(skill_size * progress)
+            if progress_height > 0:
+                progress_rect = pygame.Rect(
+                    skill_x, skill_y + skill_size - progress_height, 
+                    skill_size, progress_height
+                )
+                pygame.draw.rect(screen, COLORS["yellow"], progress_rect)
+
+        # 技能文字
+        for i, line in enumerate(cooldown_text.split('\n')):
+            line_surface = self.font_small.render(line, True, text_color)
+            line_rect = line_surface.get_rect(
+                center=(skill_x + skill_size // 2, skill_y + 15 + i * 15)
+            )
+            screen.blit(line_surface, line_rect)
+
+        # 技能說明（角色特定）
+        if hasattr(player, 'character_type') and player.character_type:
+            skill_name = CHARACTER_TYPES.get(player.character_type, {}).get("skill", "技能")
+            desc_text = f"{skill_name} (消耗10%血量)"
+            desc_surface = self.font_small.render(desc_text, True, COLORS["gray"])
+            desc_rect = desc_surface.get_rect()
+            desc_rect.x = skill_x + skill_size + 10
+            desc_rect.centery = skill_y + skill_size // 2
+            screen.blit(desc_surface, desc_rect)

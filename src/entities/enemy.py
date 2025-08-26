@@ -29,7 +29,7 @@ class Enemy:
     move_pattern (str): 移動模式類型\n
     """
 
-    def __init__(self, x, y, difficulty="medium"):
+    def __init__(self, x, y, difficulty="medium", enemy_type=None):
         """
         初始化AI敵人\n
         \n
@@ -37,6 +37,7 @@ class Enemy:
         x (float): 初始 X 座標位置\n
         y (float): 初始 Y 座標位置\n
         difficulty (str): AI難度等級，可選 'weak', 'medium', 'strong'\n
+        enemy_type (str): 敵人類型，可選 'robot', 'alien', 'zombie'，如果為None則根據難度自動選擇\n
         """
         # 位置和尺寸設定
         self.x = x
@@ -47,6 +48,12 @@ class Enemy:
         # 難度設定
         self.difficulty = difficulty
         self.config = AI_CONFIGS[difficulty]
+
+        # 敵人類型設定
+        if enemy_type is None:
+            enemy_type = self.config.get("preferred_enemy_type", "robot")
+        self.enemy_type = enemy_type
+        self.enemy_config = ENEMY_TYPES.get(enemy_type, ENEMY_TYPES["robot"])
 
         # 生命值設定
         self.max_health = self.config["health"]
@@ -69,6 +76,24 @@ class Enemy:
         self.target_y = y
         self.direction_change_time = 0
         self.behavior_timer = 0
+
+        # 特殊能力系統
+        self.special_ability = self.enemy_config.get("special_ability")
+        self.ability_config = ENEMY_ABILITIES.get(self.special_ability, {})
+        self.ability_cooldown = 0
+        self.last_ability_time = 0
+        
+        # 能力相關狀態
+        self.shield_active = False
+        self.shield_start_time = 0
+        self.last_regen_time = 0
+        
+        # 狀態效果
+        self.slow_factor = 1.0
+        self.slow_end_time = 0
+        self.dot_damage = 0
+        self.dot_end_time = 0
+        self.last_dot_time = 0
 
         # 追蹤和瞄準系統
         self.last_known_player_pos = None
@@ -360,6 +385,7 @@ class Enemy:
         計算射擊角度（包含預測性瞄準）\n
         \n
         根據AI難度調整瞄準精確度和預測能力\n
+        考慮特殊能力對精確度的影響\n
         \n
         參數:\n
         player: 玩家物件\n
@@ -386,8 +412,16 @@ class Enemy:
         # 計算角度
         angle = math.degrees(math.atan2(base_dy, base_dx)) + 90  # +90調整為向上為0度
 
+        # 基礎精確度
+        accuracy = self.accuracy
+        
+        # 特殊能力加成
+        if self.special_ability == "precision_shooting":
+            accuracy += self.ability_config.get("accuracy_bonus", 0.2)
+            accuracy = min(1.0, accuracy)  # 確保不超過100%
+
         # 根據精確度添加隨機誤差
-        accuracy_error = (1.0 - self.accuracy) * 30  # 最大30度誤差
+        accuracy_error = (1.0 - accuracy) * 30  # 最大30度誤差
         angle += random.uniform(-accuracy_error, accuracy_error)
 
         return angle
@@ -433,6 +467,11 @@ class Enemy:
         回傳:\n
         bool: 是否仍然存活\n
         """
+        # 檢查能量護盾
+        if (self.special_ability == "energy_shield" and self.shield_active):
+            damage_reduction = self.ability_config.get("damage_reduction", 0.3)
+            damage = int(damage * (1.0 - damage_reduction))
+        
         self.health -= damage
 
         # 確保生命值不會低於0
@@ -460,12 +499,18 @@ class Enemy:
         if not self.is_alive:
             return
 
+        # 更新特殊能力
+        self._update_special_abilities()
+
         # 更新AI行為
         self.update_ai_behavior(player, screen_width, screen_height)
 
-        # 更新位置
-        self.x += self.velocity_x
-        self.y += self.velocity_y
+        # 更新位置（考慮減速效果）
+        effective_velocity_x = self.velocity_x * self.slow_factor
+        effective_velocity_y = self.velocity_y * self.slow_factor
+        
+        self.x += effective_velocity_x
+        self.y += effective_velocity_y
 
         # 邊界檢查
         if self.x < 0:
@@ -478,14 +523,95 @@ class Enemy:
         elif self.y + self.height > screen_height:
             self.y = screen_height - self.height
 
+    def _update_special_abilities(self):
+        """
+        更新敵人特殊能力\n
+        """
+        current_time = pygame.time.get_ticks()
+        
+        # 更新狀態效果
+        self._update_status_effects(current_time)
+        
+        if self.special_ability == "energy_shield":
+            # 能量護盾邏輯
+            shield_cooldown = self.ability_config.get("cooldown", 10000)
+            shield_duration = self.ability_config.get("shield_duration", 3000)
+            
+            # 檢查是否應該啟動護盾
+            if (not self.shield_active and 
+                current_time - self.last_ability_time >= shield_cooldown):
+                self.shield_active = True
+                self.shield_start_time = current_time
+                self.last_ability_time = current_time
+            
+            # 檢查護盾是否應該結束
+            if (self.shield_active and 
+                current_time - self.shield_start_time >= shield_duration):
+                self.shield_active = False
+                
+        elif self.special_ability == "regeneration":
+            # 生命再生邏輯
+            heal_interval = self.ability_config.get("heal_interval", 1000)
+            heal_rate = self.ability_config.get("heal_rate", 2)
+            max_heal_percent = self.ability_config.get("max_heal_percent", 0.5)
+            
+            if (current_time - self.last_regen_time >= heal_interval and
+                self.health < self.max_health * max_heal_percent):
+                self.health = min(self.health + heal_rate, 
+                                int(self.max_health * max_heal_percent))
+                self.last_regen_time = current_time
+
+    def _update_status_effects(self, current_time):
+        """
+        更新狀態效果（減速、持續傷害等）\n
+        
+        參數:\n
+        current_time (int): 當前時間\n
+        """
+        # 更新減速效果
+        if current_time > self.slow_end_time:
+            self.slow_factor = 1.0
+        
+        # 更新持續傷害
+        if current_time < self.dot_end_time:
+            if current_time - self.last_dot_time >= 1000:  # 每秒造成傷害
+                self.take_damage(self.dot_damage)
+                self.last_dot_time = current_time
+        else:
+            self.dot_damage = 0
+
+    def apply_slow_effect(self, slow_factor, duration):
+        """
+        應用減速效果\n
+        
+        參數:\n
+        slow_factor (float): 減速係數（0.5表示減速50%）\n
+        duration (int): 持續時間（毫秒）\n
+        """
+        current_time = pygame.time.get_ticks()
+        self.slow_factor = slow_factor
+        self.slow_end_time = current_time + duration
+
+    def apply_dot_effect(self, damage_per_second, duration):
+        """
+        應用持續傷害效果\n
+        
+        參數:\n
+        damage_per_second (int): 每秒傷害\n
+        duration (int): 持續時間（毫秒）\n
+        """
+        current_time = pygame.time.get_ticks()
+        self.dot_damage = damage_per_second
+        self.dot_end_time = current_time + duration
+        self.last_dot_time = current_time
+
     def draw(self, screen):
         """
         繪製敵人\n
         \n
-        根據難度和狀態顯示不同顏色：\n
-        - 弱AI：綠色\n
-        - 中AI：橙色\n
-        - 強AI：紅色\n
+        根據敵人類型和狀態顯示不同顏色：\n
+        - 基本顏色：根據敵人類型\n
+        - 護盾效果：藍色光暈\n
         - 受傷狀態：顏色變暗\n
         \n
         參數:\n
@@ -494,13 +620,8 @@ class Enemy:
         if not self.is_alive:
             return
 
-        # 根據難度決定基本顏色
-        if self.difficulty == "weak":
-            base_color = COLORS["green"]
-        elif self.difficulty == "medium":
-            base_color = COLORS["orange"]
-        else:  # strong
-            base_color = COLORS["red"]
+        # 根據敵人類型決定基本顏色
+        base_color = self.enemy_config["color"]
 
         # 根據血量調整顏色深度
         health_ratio = self.health / self.max_health
@@ -511,24 +632,49 @@ class Enemy:
         # 畫敵人方塊
         pygame.draw.rect(screen, base_color, (self.x, self.y, self.width, self.height))
 
+        # 特殊效果繪製
+        if self.special_ability == "energy_shield" and self.shield_active:
+            # 繪製護盾效果（藍色邊框）
+            shield_color = (0, 100, 255)
+            pygame.draw.rect(
+                screen, shield_color, (self.x - 2, self.y - 2, self.width + 4, self.height + 4), 3
+            )
+
+        # 狀態效果指示
+        if self.slow_factor < 1.0:
+            # 減速效果（藍色光暈）
+            slow_color = (0, 191, 255)
+            pygame.draw.rect(
+                screen, slow_color, (self.x - 1, self.y - 1, self.width + 2, self.height + 2), 2
+            )
+            
+        if self.dot_damage > 0:
+            # 持續傷害效果（紅色光暈）
+            dot_color = (255, 0, 0)
+            pygame.draw.rect(
+                screen, dot_color, (self.x - 1, self.y - 1, self.width + 2, self.height + 2), 1
+            )
+
         # 畫邊框
         pygame.draw.rect(
             screen, COLORS["white"], (self.x, self.y, self.width, self.height), 2
         )
 
-        # 顯示AI等級指示器（角落小點）
-        indicator_size = 5
-        if self.difficulty == "weak":
-            indicator_color = COLORS["white"]
-        elif self.difficulty == "medium":
-            indicator_color = COLORS["yellow"]
-        else:
-            indicator_color = COLORS["red"]
+        # 顯示敵人類型指示器（角落小圓點）
+        indicator_size = 4
+        indicator_color = COLORS["white"]
+        
+        if self.enemy_type == "robot":
+            indicator_color = (128, 128, 128)  # 灰色
+        elif self.enemy_type == "alien":
+            indicator_color = (0, 255, 0)     # 綠色
+        elif self.enemy_type == "zombie":
+            indicator_color = (139, 69, 19)   # 棕色
 
         pygame.draw.circle(
             screen,
             indicator_color,
-            (int(self.x + self.width - 8), int(self.y + 8)),
+            (int(self.x + self.width - 6), int(self.y + 6)),
             indicator_size,
         )
 
@@ -550,11 +696,15 @@ class Enemy:
         """
         return {
             "difficulty": self.difficulty,
+            "enemy_type": self.enemy_type,
+            "enemy_name": self.enemy_config["name"],
             "health": self.health,
             "max_health": self.max_health,
             "accuracy": self.accuracy,
             "state": self.state,
             "position": (self.x, self.y),
+            "special_ability": self.special_ability,
+            "shield_active": getattr(self, "shield_active", False),
         }
 
     # 額外的高級AI方法
