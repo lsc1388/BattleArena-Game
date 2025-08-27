@@ -110,12 +110,12 @@ for entity in entities[:]:  # Create copy for safe iteration
 **Mouse Controls** (per CROSSHAIR_SYSTEM.md):
 
 - Left click: Shoot at crosshair position (precise targeting)
-- Right click: Restart game 
+- Right click: Restart game
 - Mouse movement: Updates crosshair position only (NO character movement)
 
 **Keyboard Controls**:
 
-- WASD: Character movement (only method for player positioning) 
+- WASD: Character movement (only method for player positioning)
 - 1-5: Weapon switching
 - Q: Character special skill (10s cooldown, 10% health cost)
 - R: Manual reload

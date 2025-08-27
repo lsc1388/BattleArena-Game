@@ -41,10 +41,10 @@ class GameUI:
         print(f"🎨 使用字體: {font_info['current_chinese_font'] or '系統預設字體'}")
 
         # UI面板位置設定
-        self.health_bar_pos = (20, 20)
+        self.health_bar_pos = (20, 120)  # 調整位置避免與關卡資訊重疊
         self.health_bar_size = (200, 20)
-        self.weapon_info_pos = (20, 50)
-        self.powerup_list_pos = (20, 100)
+        self.weapon_info_pos = (20, 150)  # 相應調整武器資訊位置
+        self.powerup_list_pos = (20, 200)  # 相應調整強化效果位置
         self.score_pos = (screen_width - 150, 20)
         self.skill_cooldown_pos = (screen_width - 150, 60)
 
@@ -83,7 +83,16 @@ class GameUI:
             if current_time - msg["time"] < self.message_duration
         ]
 
-    def draw(self, screen, player, enemies, score, game_stats):
+    def draw(
+        self,
+        screen,
+        player,
+        enemies,
+        score,
+        game_stats,
+        current_level=1,
+        level_enemies_killed=0,
+    ):
         """
         繪製所有UI元素\n
         \n
@@ -93,7 +102,12 @@ class GameUI:
         enemies: 敵人列表\n
         score (int): 當前分數\n
         game_stats (dict): 遊戲統計資料\n
+        current_level (int): 當前關卡數\n
+        level_enemies_killed (int): 當前關卡已擊殺敵人數\n
         """
+        # 繪製關卡資訊（左上角）
+        self._draw_level_info(screen, current_level, level_enemies_killed)
+
         # 繪製玩家生命值
         self._draw_health_display(screen, player)
 
@@ -120,6 +134,71 @@ class GameUI:
 
         # 繪製小地圖（可選）
         self._draw_minimap(screen, player, enemies)
+
+    def _draw_level_info(self, screen, current_level, level_enemies_killed):
+        """
+        繪製關卡資訊顯示（左上角）\n
+        \n
+        根據 target.prompt.md 規格：在視窗左上角顯示關卡資訊\n
+        使用支援繁體中文的字體進行顯示\n
+        \n
+        參數:\n
+        screen (pygame.Surface): 遊戲畫面物件\n
+        current_level (int): 當前關卡數\n
+        level_enemies_killed (int): 當前關卡已擊殺敵人數\n
+        """
+        # 關卡顯示位置設定（左上角，留出一些邊距）
+        level_info_x = 20
+        level_info_y = 20
+
+        # 獲取當前關卡配置
+        level_config = LEVEL_CONFIGS.get(current_level)
+        if not level_config:
+            return
+
+        # 關卡標題顯示
+        level_title = f"關卡 {current_level}"
+        title_surface = font_manager.render_text(level_title, "medium", COLORS["white"])
+        screen.blit(title_surface, (level_info_x, level_info_y))
+
+        # 關卡名稱顯示（去掉前面的"第X關 - "部分）
+        level_name = (
+            level_config["name"].split(" - ")[-1]
+            if " - " in level_config["name"]
+            else level_config["name"]
+        )
+        name_y = level_info_y + 25
+        name_surface = font_manager.render_text(level_name, "small", COLORS["yellow"])
+        screen.blit(name_surface, (level_info_x, name_y))
+
+        # 進度顯示
+        progress_y = name_y + 20
+        progress_text = f"進度: {level_enemies_killed}/{level_config['enemy_count']}"
+
+        # 根據進度選擇顏色
+        if level_enemies_killed >= level_config["enemy_count"]:
+            progress_color = COLORS["green"]  # 完成時顯示綠色
+        elif level_enemies_killed >= level_config["enemy_count"] * 0.7:
+            progress_color = COLORS["yellow"]  # 接近完成時顯示黃色
+        else:
+            progress_color = COLORS["white"]  # 一般狀態顯示白色
+
+        progress_surface = font_manager.render_text(
+            progress_text, "small", progress_color
+        )
+        screen.blit(progress_surface, (level_info_x, progress_y))
+
+        # 敵人類型顯示
+        enemy_type_y = progress_y + 20
+        enemy_type_config = AI_ENEMY_TYPES.get(level_config["enemy_type"])
+        if enemy_type_config:
+            enemy_info = (
+                f"敵人: {enemy_type_config['emoji']} {enemy_type_config['name']}"
+            )
+            enemy_surface = font_manager.render_text(
+                enemy_info, "small", COLORS["gray"]
+            )
+            screen.blit(enemy_surface, (level_info_x, enemy_type_y))
 
     def _draw_health_display(self, screen, player):
         """
