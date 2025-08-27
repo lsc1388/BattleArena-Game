@@ -67,7 +67,10 @@ class Enemy:
         # 戰鬥相關（結合類型修飾符）
         base_accuracy = self.config["accuracy"]
         self.accuracy = base_accuracy * self.type_config["accuracy_modifier"]
-        self.fire_rate = self.config["fire_rate"]
+        self.fire_rate = self.type_config.get(
+            "attack_frequency", self.config["fire_rate"]
+        )
+        self.damage = self.type_config.get("damage", BULLET_DAMAGE)
         self.last_shot_time = 0
 
         # AI行為系統
@@ -424,7 +427,7 @@ class Enemy:
             "y": self.y + self.height / 2,
             "angle": angle,
             "speed": BULLET_SPEED,
-            "damage": BULLET_DAMAGE,
+            "damage": self.damage,  # 使用敵人類型特定的傷害
             "owner": "enemy",
         }
 

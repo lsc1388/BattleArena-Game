@@ -79,6 +79,8 @@ class Player:
         # 技能系統
         self.skill_cooldown = 0
         self.last_skill_time = 0
+        self.active_skill = None  # 當前啟用的技能
+        self.skill_start_time = 0  # 技能開始時間
 
         # 輸入狀態追蹤
         self.keys_pressed = set()
@@ -452,6 +454,13 @@ class Player:
 
         # 啟動技能效果
         self.last_skill_time = current_time
+        self.active_skill = {
+            "type": skill_config["type"],
+            "start_time": current_time,
+            "duration": skill_config["duration"],
+            "damage": skill_config["damage"],
+            "effect_color": skill_config["effect_color"],
+        }
 
         # 根據角色類型返回不同的技能效果
         return {
@@ -464,6 +473,7 @@ class Player:
             "range": "fullscreen",  # 全螢幕範圍
             "health_cost": skill_cost,
             "description": skill_config["description"],
+            "duration": skill_config["duration"],
         }
 
     def apply_powerup(self, powerup_type):
@@ -525,6 +535,51 @@ class Player:
         # 移除過期的強化效果
         for powerup_type in expired_powerups:
             del self.powerups[powerup_type]
+
+    def update_skill_effects(self):
+        """
+        更新技能效果狀態\n
+        \n
+        檢查技能是否已經結束，並清除過期的技能效果\n
+        """
+        if self.active_skill:
+            current_time = pygame.time.get_ticks()
+            skill_elapsed_time = current_time - self.active_skill["start_time"]
+
+            if skill_elapsed_time >= self.active_skill["duration"]:
+                # 技能時間結束
+                self.active_skill = None
+
+    def is_skill_active(self):
+        """
+        檢查技能是否正在啟用中\n
+        \n
+        回傳:\n
+        bool: 技能是否正在啟用\n
+        """
+        return self.active_skill is not None
+
+    def get_active_skill_info(self):
+        """
+        取得當前啟用技能的資訊\n
+        \n
+        回傳:\n
+        dict: 技能資訊，如果沒有技能啟用則回傳 None\n
+        """
+        if not self.active_skill:
+            return None
+
+        current_time = pygame.time.get_ticks()
+        remaining_time = self.active_skill["duration"] - (
+            current_time - self.active_skill["start_time"]
+        )
+
+        return {
+            "type": self.active_skill["type"],
+            "effect_color": self.active_skill["effect_color"],
+            "remaining_time": max(0, remaining_time) / 1000,  # 轉成秒
+            "damage": self.active_skill["damage"],
+        }
 
     def take_damage(self, damage):
         """
@@ -601,6 +656,7 @@ class Player:
         # 更新各種系統狀態
         self.update_reload()
         self.update_powerups()
+        self.update_skill_effects()
 
     def draw(self, screen):
         """
@@ -619,7 +675,10 @@ class Player:
         base_color = self.character_config["color"]  # 角色基本顏色
         color = base_color
 
-        if "skill_boost" in self.powerups:
+        if self.active_skill:
+            # 技能啟用時顯示技能效果顏色
+            color = self.active_skill["effect_color"]
+        elif "skill_boost" in self.powerups:
             color = COLORS["purple"]  # 技能狀態用紫色
         elif self.is_reloading:
             color = COLORS["yellow"]  # 填裝中用黃色
@@ -633,15 +692,120 @@ class Player:
         border_color = COLORS["white"]
 
         # 如果正在使用技能，邊框顯示技能顏色
-        if "skill_effect" in self.powerups:
+        if self.active_skill:
+            border_color = self.active_skill["effect_color"]
+        elif "skill_effect" in self.powerups:
             border_color = self.character_config["skill"]["effect_color"]
 
         pygame.draw.rect(
             screen, border_color, (self.x, self.y, self.width, self.height), 2
         )
 
+        # 繪製技能視覺效果
+        if self.active_skill:
+            self._draw_skill_effects(screen)
+
         # 在角色上方顯示角色類型標識（簡化的圖示）
         self._draw_character_indicator(screen)
+
+    def _draw_skill_effects(self, screen):
+        """
+        繪製技能視覺效果\n
+        \n
+        根據技能類型繪製不同的視覺效果：\n
+        - 雷射：從玩家位置發射光束\n
+        - 火焰：在玩家周圍顯示火焰粒子\n
+        - 冰凍：在玩家周圍顯示冰晶效果\n
+        \n
+        參數:\n
+        screen (pygame.Surface): 遊戲畫面物件\n
+        """
+        if not self.active_skill:
+            return
+
+        skill_type = self.active_skill["type"]
+        effect_color = self.active_skill["effect_color"]
+
+        if skill_type == "laser":
+            # 雷射效果：從玩家中心向上發射光束
+            player_center_x = self.x + self.width // 2
+            player_center_y = self.y + self.height // 2
+
+            # 畫多條雷射光束產生閃爍效果
+            for i in range(3):
+                beam_width = 5 + i * 2
+                beam_color = tuple(max(0, c - i * 50) for c in effect_color)
+
+                # 向上的主光束
+                pygame.draw.line(
+                    screen,
+                    beam_color,
+                    (player_center_x, player_center_y),
+                    (player_center_x, 0),
+                    beam_width,
+                )
+
+                # 向四個方向的次要光束
+                directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]
+                for dx, dy in directions:
+                    end_x = player_center_x + dx * 150
+                    end_y = player_center_y + dy * 150
+                    pygame.draw.line(
+                        screen,
+                        beam_color,
+                        (player_center_x, player_center_y),
+                        (end_x, end_y),
+                        max(1, beam_width - 2),
+                    )
+
+        elif skill_type == "fire":
+            # 火焰效果：在玩家周圍顯示火焰粒子
+            import math
+            import random
+
+            player_center_x = self.x + self.width // 2
+            player_center_y = self.y + self.height // 2
+
+            # 畫多個火焰粒子
+            for i in range(8):
+                angle = (pygame.time.get_ticks() / 100 + i * 45) % 360
+                radius = 30 + random.randint(-10, 10)
+
+                particle_x = player_center_x + math.cos(math.radians(angle)) * radius
+                particle_y = player_center_y + math.sin(math.radians(angle)) * radius
+
+                # 不同大小的火焰粒子
+                for size in [8, 5, 3]:
+                    fire_color = (255, max(0, 165 - size * 20), max(0, size * 10))
+                    pygame.draw.circle(
+                        screen, fire_color, (int(particle_x), int(particle_y)), size
+                    )
+
+        elif skill_type == "ice":
+            # 冰凍效果：在玩家周圍顯示冰晶
+            import math
+
+            player_center_x = self.x + self.width // 2
+            player_center_y = self.y + self.height // 2
+
+            # 畫六角形冰晶
+            for radius in [25, 35, 45]:
+                points = []
+                for i in range(6):
+                    angle = i * 60 + (pygame.time.get_ticks() / 50) % 360
+                    x = player_center_x + math.cos(math.radians(angle)) * radius
+                    y = player_center_y + math.sin(math.radians(angle)) * radius
+                    points.append((int(x), int(y)))
+
+                # 畫冰晶邊框
+                ice_color = tuple(min(255, c + 50) for c in effect_color)
+                if len(points) > 2:
+                    pygame.draw.polygon(screen, ice_color, points, 2)
+
+                # 畫冰晶中心
+                pygame.draw.circle(
+                    screen, effect_color, (player_center_x, player_center_y), 5
+                )
 
     def _draw_character_indicator(self, screen):
         """

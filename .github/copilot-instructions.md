@@ -1,6 +1,23 @@
 <!-- BattleArena Game — AI Coding Agent Guide -->
 
-Essential knowledge for AI coding agents to be immediately productive in this codebase. Focuses on architecture patterns, critical integration points, and project-specific conventions.
+Essential knowledge for AI coding agents to be immediately productive in this codebase. Focuses on archite**Quick Reference Examples**
+
+**Config Access**: `weapon_data = WEAPON_CONFIGS[self.current_weapon]`
+**Message Display**: `self.game_ui.add_message("彈藥不足", "warning", COLORS["yellow"])`
+**Character Skills**: Defined in `CHARACTER_CONFIGS[type]["skill"]` with damage, cooldown, effect_color
+**Scene Backgrounds**: `SCENE_CONFIGS[scene]["background_color"]` for environment customization
+
+## 🎯 Critical Project-Specific Patterns
+
+**State Machine Flow**: Menu → character_select → scene_select → playing → game_over (see `main.py:BattleArenaGame`)
+
+**Skill System**: 3-second duration skills with visual effects and health cost - use `Player.use_skill()` and check `Player.is_skill_active()`
+
+**Level Progression**: Automatic enemy type switching between levels, track `level_enemies_killed` vs `LEVEL_CONFIGS[level]["enemy_count"]`
+
+**Chinese Font Handling**: FontManager automatically detects system fonts, use `font_manager.render_text()` consistently
+
+**AI Difficulty Scaling**: All AI properties in `AI_CONFIGS` affect enemy accuracy, health, and behavior patternspatterns, critical integration points, and project-specific conventions.
 
 ## 🏗️ Architecture Overview
 
@@ -38,10 +55,13 @@ collision_results = self.collision_system.check_all_collisions(
 
 **Configuration-Driven Design**: All balance values live in `src/config.py`:
 
-- `WEAPON_CONFIGS`: damage, ammo, reload times, special properties
-- `CHARACTER_CONFIGS`: skills, colors, cooldowns
-- `AI_CONFIGS`: difficulty levels, accuracy, behavior patterns
-- `POWERUP_EFFECTS`: duration, multipliers, instant effects
+- `WEAPON_CONFIGS`: damage, ammo, reload times, fire_rate, special properties (spread, bullet_count)
+- `CHARACTER_CONFIGS`: skills, colors, cooldowns, attributes (attack_power, fire_rate, speed, health multipliers)
+- `AI_CONFIGS`: difficulty levels, accuracy, behavior patterns, health
+- `POWERUP_EFFECTS`: duration, multipliers, instant effects, weapon unlocks
+- `LEVEL_CONFIGS`: enemy types, counts, descriptions, completion messages
+- `SCENE_CONFIGS`: background colors, accent colors, descriptions
+- `AI_ENEMY_TYPES`: health, speed/accuracy modifiers, damage, attack frequency
 
 ## 🎯 Entity System Patterns
 
@@ -57,9 +77,24 @@ def get_rect(self):
 def draw(self, screen):
     # Render entity with character-specific colors/emojis
 
-# Health management
+# Health management (entities with health)
 self.health = initial_value
 self.is_alive = self.health > 0
+
+# State management (all entities)
+self.is_active = True  # For bullets, powerups
+```
+
+**Manager Pattern for Collections**:
+
+```python
+# BulletManager handles all bullet lifecycle
+self.bullet_manager.create_bullet(x, y, angle, speed, damage, owner)
+self.bullet_manager.update(screen_width, screen_height)
+self.bullet_manager.draw(screen)
+
+# PowerUpManager handles spawning and pickup logic
+self.powerup_manager.spawn_powerup_on_enemy_death(x, y)
 ```
 
 **Safe Entity Removal Pattern**:
@@ -75,16 +110,21 @@ for entity in entities[:]:  # Create copy for safe iteration
 **Mouse Controls** (per CROSSHAIR_SYSTEM.md):
 
 - Left click: Shoot at crosshair position (precise targeting)
-- Right click: Restart game
+- Right click: Restart game 
 - Mouse movement: Updates crosshair position only (NO character movement)
 
 **Keyboard Controls**:
 
-- WASD: Character movement (only method for player positioning)
+- WASD: Character movement (only method for player positioning) 
 - 1-5: Weapon switching
-- Q: Character special skill (30s cooldown, 10% health cost)
+- Q: Character special skill (10s cooldown, 10% health cost)
 - R: Manual reload
 - C: Toggle crosshair display
+- ESC: Return to menu
+- H: Toggle health display mode (bar/number, menu only)
+- +/-: Adjust player health (menu only)
+
+**Continuous Input Handling**: Use `_handle_continuous_input()` pattern for WASD movement and mouse shooting, separate from discrete key events
 
 ## 🎨 UI System Conventions
 
@@ -112,6 +152,12 @@ for entity in entities[:]:  # Create copy for safe iteration
 1. Define in `POWERUP_EFFECTS` with duration/instant properties
 2. Implement in `PowerUp.apply_effect()` and `Player.update_powerups()`
 3. Add spawn chance in `PowerUpManager.spawn_powerup_on_enemy_death()`
+
+**Adding New Level**:
+
+1. Add entry to `LEVEL_CONFIGS` with enemy_type, enemy_count, description
+2. Update level completion logic in `BattleArenaGame._check_level_completion()`
+3. Consider enemy spawn patterns in main game loop
 
 ## 🐛 Development & Debugging
 

@@ -20,12 +20,13 @@ COLORS = {
     "purple": (128, 0, 128),
     "gray": (128, 128, 128),
     "dark_gray": (64, 64, 64),
+    "gold": (255, 215, 0),
 }
 
 # 玩家設定
 PLAYER_SIZE = 40
 PLAYER_SPEED = 5
-PLAYER_DEFAULT_HEALTH = 100
+PLAYER_DEFAULT_HEALTH = 200
 
 # 敵人設定
 ENEMY_SIZE = 35
@@ -192,6 +193,7 @@ CHARACTER_CONFIGS = {
             "effect_color": (255, 255, 0),  # 黃色雷射
             "cooldown": 10000,  # 10秒
             "health_cost_percent": 10,
+            "duration": 3000,  # 技能持續3秒
         },
     },
     "dog": {
@@ -212,6 +214,7 @@ CHARACTER_CONFIGS = {
             "effect_color": (255, 69, 0),  # 紅橙色火焰
             "cooldown": 10000,
             "health_cost_percent": 10,
+            "duration": 3000,  # 技能持續3秒
         },
     },
     "wolf": {
@@ -232,6 +235,7 @@ CHARACTER_CONFIGS = {
             "effect_color": (173, 216, 230),  # 淺藍色冰
             "cooldown": 10000,
             "health_cost_percent": 10,
+            "duration": 3000,  # 技能持續3秒
         },
     },
 }
@@ -274,6 +278,8 @@ AI_ENEMY_TYPES = {
         "speed_modifier": 1.0,
         "accuracy_modifier": 1.2,  # 機器人瞄準較準
         "description": "機械化戰鬥單位",
+        "damage": 20,
+        "attack_frequency": 1500,  # 1.5秒攻擊頻率
     },
     "alien": {
         "name": "外星人",
@@ -283,6 +289,8 @@ AI_ENEMY_TYPES = {
         "speed_modifier": 1.3,  # 外星人移動較快
         "accuracy_modifier": 1.0,
         "description": "神秘的外星生物",
+        "damage": 35,
+        "attack_frequency": 3000,  # 3秒攻擊頻率
     },
     "zombie": {
         "name": "殭屍",
@@ -292,6 +300,8 @@ AI_ENEMY_TYPES = {
         "speed_modifier": 0.7,  # 殭屍移動較慢
         "accuracy_modifier": 0.8,  # 殭屍瞄準較差
         "description": "不死的怪物",
+        "damage": 25,
+        "attack_frequency": 2000,  # 2秒攻擊頻率
     },
 }
 
@@ -303,4 +313,22 @@ GAME_STATES = {
     "playing": "playing",
     "game_over": "game_over",
     "paused": "paused",
+}
+
+# 關卡設定
+LEVEL_CONFIGS = {
+    1: {
+        "name": "第一關 - 殭屍來襲",
+        "enemy_type": "zombie",
+        "enemy_count": 3,
+        "description": "擊敗 3 個殭屍",
+        "completion_message": "第一關完成！準備迎接外星人入侵！",
+    },
+    2: {
+        "name": "第二關 - 外星人入侵",
+        "enemy_type": "alien",
+        "enemy_count": 5,
+        "description": "擊敗 5 個外星人",
+        "completion_message": "恭喜！你贏了！成功保衛了地球！",
+    },
 }

@@ -59,6 +59,9 @@ class BattleArenaGame:
 
         # 遊戲統計
         self.score = 0
+        self.current_level = 1
+        self.level_enemies_killed = 0
+        self.game_completed = False
         self.game_stats = {
             "enemies_killed": 0,
             "shots_fired": 0,
@@ -69,6 +72,8 @@ class BattleArenaGame:
 
         # 計時器
         self.game_start_time = 0
+        self.last_skill_activation = 0
+        self.last_skill_damage_time = 0
 
     def _init_game_systems(self):
         """
@@ -88,6 +93,7 @@ class BattleArenaGame:
         self.enemies = []
         self.enemy_spawn_count = 1  # 當前應該存在的敵人數量
         self.enemy_types_pool = ["robot", "alien", "zombie"]  # 敵人類型池
+        self.current_level_enemy_type = "zombie"  # 當前關卡的敵人類型
 
     def start_new_game(self):
         """
@@ -98,6 +104,9 @@ class BattleArenaGame:
         # 重置遊戲狀態
         self.game_state = GAME_STATES["playing"]
         self.score = 0
+        self.current_level = 1
+        self.level_enemies_killed = 0
+        self.game_completed = False
         self.game_stats = {
             "enemies_killed": 0,
             "shots_fired": 0,
@@ -106,6 +115,8 @@ class BattleArenaGame:
             "game_time": 0,
         }
         self.game_start_time = pygame.time.get_ticks()
+        self.last_skill_activation = 0
+        self.last_skill_damage_time = 0
 
         # 創建玩家（使用選擇的角色）
         player_start_x = SCREEN_WIDTH // 2 - PLAYER_SIZE // 2
@@ -119,6 +130,7 @@ class BattleArenaGame:
 
         # 重置敵人系統
         self.enemy_spawn_count = 1  # 重置敵人數量
+        self.current_level_enemy_type = LEVEL_CONFIGS[self.current_level]["enemy_type"]
         self.enemies.clear()
 
         # 創建初始敵人
@@ -129,20 +141,26 @@ class BattleArenaGame:
         self.powerup_manager.clear_all_powerups()
 
         # 顯示遊戲開始訊息
-        self.game_ui.add_message("遊戲開始！", "achievement", COLORS["green"])
+        level_config = LEVEL_CONFIGS[self.current_level]
+        self.game_ui.add_message(
+            f"{level_config['name']}", "achievement", COLORS["green"]
+        )
+        self.game_ui.add_message(
+            f"{level_config['description']}", "info", COLORS["yellow"]
+        )
 
     def _spawn_enemy(self):
         """
         生成新敵人\n
         \n
-        在螢幕上方隨機位置生成敵人，隨機選擇敵人類型\n
+        在螢幕上方隨機位置生成敵人，根據當前關卡選擇敵人類型\n
         """
         # 隨機選擇生成位置（螢幕上方）
         enemy_x = random.randint(50, SCREEN_WIDTH - ENEMY_SIZE - 50)
         enemy_y = random.randint(50, 150)
 
-        # 隨機選擇敵人類型
-        enemy_type = random.choice(self.enemy_types_pool)
+        # 根據當前關卡選擇敵人類型
+        enemy_type = self.current_level_enemy_type
 
         # 創建敵人
         enemy = Enemy(enemy_x, enemy_y, self.enemy_difficulty, enemy_type)
@@ -297,20 +315,8 @@ class BattleArenaGame:
                 if self.player:
                     skill_result = self.player.use_skill()
                     if skill_result["success"]:
-                        # 對所有敵人造成技能傷害
-                        skill_damage = skill_result["damage"]
-                        skill_type = skill_result["skill_type"]
-                        enemies_hit = 0
-                        for enemy in self.enemies:
-                            if enemy.is_alive:
-                                if enemy.take_damage(skill_damage):
-                                    enemies_hit += 1
-                                else:
-                                    # 敵人被技能擊殺
-                                    enemies_hit += 1
-
-                        # 顯示技能效果訊息
-                        skill_message = f"{skill_result['skill_name']}啟動！擊中 {enemies_hit} 個敵人"
+                        # 顯示技能啟動訊息
+                        skill_message = f"{skill_result['skill_name']}啟動！"
                         self.game_ui.add_message(
                             skill_message,
                             "achievement",
@@ -321,6 +327,9 @@ class BattleArenaGame:
                             "damage",
                             COLORS["red"],
                         )
+
+                        # 記錄技能啟動（持續傷害將在update中處理）
+                        self.last_skill_activation = pygame.time.get_ticks()
                     else:
                         self.game_ui.add_message(
                             skill_result["reason"], "info", COLORS["yellow"]
@@ -388,8 +397,17 @@ class BattleArenaGame:
             self.player.update(SCREEN_WIDTH, SCREEN_HEIGHT)
         else:
             # 玩家死亡，遊戲結束
+            if not self.game_completed:  # 只有在未完成遊戲時才視為失敗
+                self.game_state = GAME_STATES["game_over"]
+            return
+
+        # 檢查遊戲完成條件
+        if self.game_completed:
             self.game_state = GAME_STATES["game_over"]
             return
+
+        # 處理技能持續效果
+        self._update_skill_effects()
 
         # 更新敵人
         enemies_killed_this_frame = 0
@@ -412,6 +430,7 @@ class BattleArenaGame:
                 # 移除死亡的敵人
                 self.enemies.remove(enemy)
                 self.game_stats["enemies_killed"] += 1
+                self.level_enemies_killed += 1
                 self.score += 100
                 enemies_killed_this_frame += 1
 
@@ -420,14 +439,8 @@ class BattleArenaGame:
 
                 self.game_ui.add_message(f"+100 分", "achievement", COLORS["yellow"])
 
-        # AI增殖機制：每殺死一個敵人，增加敵人數量上限
-        if enemies_killed_this_frame > 0:
-            self.enemy_spawn_count += enemies_killed_this_frame
-            self.game_ui.add_message(
-                f"敵人增援來襲！目標敵人數：{self.enemy_spawn_count}",
-                "warning",
-                COLORS["red"],
-            )
+        # 檢查關卡完成條件
+        self._check_level_completion()
 
         # 更新子彈
         self.bullet_manager.update(SCREEN_WIDTH, SCREEN_HEIGHT)
@@ -446,18 +459,107 @@ class BattleArenaGame:
         # 更新UI
         self.game_ui.update()
 
-        # 檢查是否需要生成新敵人（AI增殖機制）
-        current_enemy_count = len([e for e in self.enemies if e.is_alive])
-        if current_enemy_count < self.enemy_spawn_count:
-            # 需要補充敵人到目標數量
-            enemies_to_spawn = self.enemy_spawn_count - current_enemy_count
-            for _ in range(enemies_to_spawn):
+        # AI增殖機制：依據關卡設定生成敵人
+        if not self.game_completed:
+            # 檢查是否需要生成新敵人（僅在關卡未完成時）
+            current_enemy_count = len([e for e in self.enemies if e.is_alive])
+            level_config = LEVEL_CONFIGS[self.current_level]
+            remaining_enemies_needed = (
+                level_config["enemy_count"] - self.level_enemies_killed
+            )
+
+            if current_enemy_count == 0 and remaining_enemies_needed > 0:
+                # 如果沒有敵人了但還需要更多敵人，就生成一個
+                self._spawn_enemy()
+            elif current_enemy_count < 2 and remaining_enemies_needed > 1:
+                # 如果敵人太少且還需要很多敵人，保持至少2個在場上
                 self._spawn_enemy()
 
-        # 限制敵人數量上限（避免遊戲變得太困難）
-        max_enemies = 8  # 最多同時存在8個敵人
-        if len(self.enemies) > max_enemies:
-            self.enemies = self.enemies[:max_enemies]
+    def _update_skill_effects(self):
+        """
+        更新技能持續效果\n
+        \n
+        處理技能的持續傷害效果，每秒對所有敵人造成傷害\n
+        """
+        if not self.player or not self.player.is_skill_active():
+            return
+
+        current_time = pygame.time.get_ticks()
+
+        # 每秒造成一次傷害
+        if current_time - self.last_skill_damage_time >= 1000:
+            skill_info = self.player.get_active_skill_info()
+            if skill_info:
+                enemies_hit = 0
+                for enemy in self.enemies:
+                    if enemy.is_alive:
+                        # 每秒造成技能傷害的1/3（因為持續3秒）
+                        damage_per_second = skill_info["damage"] // 3
+                        if enemy.take_damage(damage_per_second):
+                            enemies_hit += 1
+                        else:
+                            # 敵人被技能擊殺
+                            enemies_hit += 1
+
+                if enemies_hit > 0:
+                    self.game_ui.add_message(
+                        f"技能持續傷害：{enemies_hit} 個敵人",
+                        "info",
+                        skill_info["effect_color"],
+                    )
+
+                self.last_skill_damage_time = current_time
+
+    def _check_level_completion(self):
+        """
+        檢查關卡完成條件\n
+        \n
+        根據 target.prompt.md 規格：\n
+        - 第一關：擊殺 3 個殭屍\n
+        - 第二關：擊殺 5 個外星人\n
+        - 完成所有關卡後顯示「你贏了」\n
+        """
+        if self.game_completed:
+            return
+
+        level_config = LEVEL_CONFIGS[self.current_level]
+
+        # 檢查是否已擊殺足夠的敵人
+        if self.level_enemies_killed >= level_config["enemy_count"]:
+            # 完成當前關卡
+            self.game_ui.add_message(
+                level_config["completion_message"], "achievement", COLORS["green"]
+            )
+
+            # 檢查是否還有更多關卡
+            if self.current_level < len(LEVEL_CONFIGS):
+                # 進入下一關
+                self.current_level += 1
+                self.level_enemies_killed = 0
+                self.current_level_enemy_type = LEVEL_CONFIGS[self.current_level][
+                    "enemy_type"
+                ]
+
+                # 清除剩餘敵人
+                self.enemies.clear()
+
+                # 顯示新關卡資訊
+                next_level_config = LEVEL_CONFIGS[self.current_level]
+                self.game_ui.add_message(
+                    f"{next_level_config['name']}", "achievement", COLORS["blue"]
+                )
+                self.game_ui.add_message(
+                    f"{next_level_config['description']}", "info", COLORS["yellow"]
+                )
+            else:
+                # 完成所有關卡，遊戲勝利
+                self.game_completed = True
+                self.enemies.clear()  # 清除所有敵人
+                self.game_ui.add_message(
+                    "遊戲完成！",
+                    "achievement",
+                    COLORS["gold"] if "gold" in COLORS else COLORS["yellow"],
+                )
 
     def _process_collision_results(self, results):
         """
@@ -582,8 +684,10 @@ class BattleArenaGame:
         # 先繪製遊戲畫面作為背景
         self.draw_game()
 
-        # 繪製遊戲結束UI
-        self.game_ui.draw_game_over_screen(self.screen, self.score, self.game_stats)
+        # 繪製遊戲結束UI，傳入遊戲完成狀態
+        self.game_ui.draw_game_over_screen(
+            self.screen, self.score, self.game_stats, self.game_completed
+        )
 
     def render(self):
         """

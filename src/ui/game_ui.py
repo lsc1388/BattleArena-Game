@@ -572,7 +572,7 @@ class GameUI:
         if mode in ["bar", "number"]:
             self.health_display_mode = mode
 
-    def draw_game_over_screen(self, screen, score, stats):
+    def draw_game_over_screen(self, screen, score, stats, game_completed=False):
         """
         繪製遊戲結束畫面\n
         \n
@@ -580,6 +580,7 @@ class GameUI:
         screen (pygame.Surface): 遊戲畫面物件\n
         score (int): 最終分數\n
         stats (dict): 遊戲統計資料\n
+        game_completed (bool): 是否完成所有關卡（勝利）\n
         """
         # 半透明背景
         overlay = pygame.Surface((self.screen_width, self.screen_height))
@@ -587,9 +588,15 @@ class GameUI:
         overlay.fill(COLORS["black"])
         screen.blit(overlay, (0, 0))
 
-        # 遊戲結束標題
-        title_text = "遊戲結束"
-        title_surface = self.font_large.render(title_text, True, COLORS["red"])
+        # 根據遊戲狀態顯示不同標題
+        if game_completed:
+            title_text = "你贏了！"
+            title_color = COLORS["green"]
+        else:
+            title_text = "遊戲結束"
+            title_color = COLORS["red"]
+
+        title_surface = self.font_large.render(title_text, True, title_color)
         title_rect = title_surface.get_rect(
             center=(self.screen_width // 2, self.screen_height // 2 - 100)
         )
@@ -611,6 +618,17 @@ class GameUI:
                 center=(self.screen_width // 2, self.screen_height // 2 - 20)
             )
             screen.blit(kills_surface, kills_rect)
+
+        # 顯示關卡完成狀態
+        if game_completed:
+            completion_text = "恭喜完成所有關卡！"
+            completion_surface = self.font_small.render(
+                completion_text, True, COLORS["yellow"]
+            )
+            completion_rect = completion_surface.get_rect(
+                center=(self.screen_width // 2, self.screen_height // 2 + 10)
+            )
+            screen.blit(completion_surface, completion_rect)
 
         # 重新開始提示
         restart_text = "按 R 重新開始，按 ESC 返回主選單"
