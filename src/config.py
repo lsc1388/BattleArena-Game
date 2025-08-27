@@ -172,9 +172,116 @@ KEYS = {
     "mouse_fire": 1,  # 滑鼠右鍵（pygame.BUTTON_RIGHT）
 }
 
+# 角色設定
+CHARACTER_CONFIGS = {
+    "cat": {
+        "name": "貓",
+        "emoji": "🐱",
+        "color": (255, 165, 0),  # 橙色
+        "skill": {
+            "name": "雷射技能",
+            "type": "laser",
+            "description": "發射強力雷射光束",
+            "damage": 300,
+            "effect_color": (255, 255, 0),  # 黃色雷射
+            "cooldown": 30000,  # 30秒
+            "health_cost_percent": 10,
+        },
+    },
+    "dog": {
+        "name": "狗",
+        "emoji": "🐶",
+        "color": (139, 69, 19),  # 棕色
+        "skill": {
+            "name": "火焰技能",
+            "type": "fire",
+            "description": "釋放燃燒火焰",
+            "damage": 250,
+            "effect_color": (255, 69, 0),  # 紅橙色火焰
+            "cooldown": 30000,
+            "health_cost_percent": 10,
+        },
+    },
+    "wolf": {
+        "name": "狼",
+        "emoji": "🐺",
+        "color": (105, 105, 105),  # 灰色
+        "skill": {
+            "name": "冰凍技能",
+            "type": "ice",
+            "description": "冰凍敵人並造成傷害",
+            "damage": 200,
+            "effect_color": (173, 216, 230),  # 淺藍色冰
+            "cooldown": 30000,
+            "health_cost_percent": 10,
+        },
+    },
+}
+
+# 場景設定
+SCENE_CONFIGS = {
+    "lava": {
+        "name": "岩漿場景",
+        "emoji": "🌋",
+        "background_color": (139, 0, 0),  # 深紅色
+        "accent_color": (255, 69, 0),  # 橙紅色
+        "effect": "heat_damage",  # 可能的環境效果
+        "description": "炎熱的岩漿地帶",
+    },
+    "mountain": {
+        "name": "高山場景",
+        "emoji": "⛰️",
+        "background_color": (105, 105, 105),  # 灰色
+        "accent_color": (169, 169, 169),  # 淺灰色
+        "effect": "thin_air",  # 可能的環境效果
+        "description": "高聳的山峰地帶",
+    },
+    "ice": {
+        "name": "冰原場景",
+        "emoji": "🧊",
+        "background_color": (70, 130, 180),  # 鋼藍色
+        "accent_color": (173, 216, 230),  # 淺藍色
+        "effect": "slippery",  # 可能的環境效果
+        "description": "寒冷的冰雪世界",
+    },
+}
+
+# AI 對手類型設定
+AI_ENEMY_TYPES = {
+    "robot": {
+        "name": "機器人",
+        "emoji": "🤖",
+        "color": (128, 128, 128),  # 金屬灰
+        "health_modifier": 1.0,
+        "speed_modifier": 1.0,
+        "accuracy_modifier": 1.2,  # 機器人瞄準較準
+        "description": "機械化戰鬥單位",
+    },
+    "alien": {
+        "name": "外星人",
+        "emoji": "👽",
+        "color": (0, 255, 0),  # 綠色
+        "health_modifier": 0.8,
+        "speed_modifier": 1.3,  # 外星人移動較快
+        "accuracy_modifier": 1.0,
+        "description": "神秘的外星生物",
+    },
+    "zombie": {
+        "name": "殭屍",
+        "emoji": "🧟",
+        "color": (0, 100, 0),  # 深綠色
+        "health_modifier": 1.5,  # 殭屍血量較高
+        "speed_modifier": 0.7,  # 殭屍移動較慢
+        "accuracy_modifier": 0.8,  # 殭屍瞄準較差
+        "description": "不死的怪物",
+    },
+}
+
 # 遊戲狀態
 GAME_STATES = {
     "menu": "menu",
+    "character_select": "character_select",
+    "scene_select": "scene_select",
     "playing": "playing",
     "game_over": "game_over",
     "paused": "paused",

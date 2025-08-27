@@ -9,6 +9,7 @@ from src.entities.bullet import BulletManager
 from src.entities.powerup import PowerUpManager
 from src.systems.collision import CollisionSystem
 from src.ui.game_ui import GameUI
+from src.ui.selection_ui import SelectionUI
 from src.utils.font_manager import font_manager
 
 ######################主遊戲類別######################
@@ -49,6 +50,10 @@ class BattleArenaGame:
         self.enemy_difficulty = "medium"
         self.health_display_mode = "number"  # 預設使用數字顯示
 
+        # 角色和場景選擇
+        self.selected_character = "cat"  # 預設角色
+        self.selected_scene = "lava"  # 預設場景
+
         # 初始化遊戲系統
         self._init_game_systems()
 
@@ -77,10 +82,12 @@ class BattleArenaGame:
         # UI系統
         self.game_ui = GameUI(SCREEN_WIDTH, SCREEN_HEIGHT)
         self.game_ui.set_health_display_mode(self.health_display_mode)
+        self.selection_ui = SelectionUI(SCREEN_WIDTH, SCREEN_HEIGHT)
 
-        # 遊戲物件列表
+        # 敵人管理
         self.enemies = []
-        self.player = None
+        self.enemy_spawn_count = 1  # 當前應該存在的敵人數量
+        self.enemy_types_pool = ["robot", "alien", "zombie"]  # 敵人類型池
 
     def start_new_game(self):
         """
@@ -100,10 +107,19 @@ class BattleArenaGame:
         }
         self.game_start_time = pygame.time.get_ticks()
 
-        # 創建玩家
+        # 創建玩家（使用選擇的角色）
         player_start_x = SCREEN_WIDTH // 2 - PLAYER_SIZE // 2
         player_start_y = SCREEN_HEIGHT - 100
-        self.player = Player(player_start_x, player_start_y, self.player_max_health)
+        self.player = Player(
+            player_start_x,
+            player_start_y,
+            self.player_max_health,
+            self.selected_character,
+        )
+
+        # 重置敵人系統
+        self.enemy_spawn_count = 1  # 重置敵人數量
+        self.enemies.clear()
 
         # 創建初始敵人
         self._spawn_enemy()
@@ -119,14 +135,17 @@ class BattleArenaGame:
         """
         生成新敵人\n
         \n
-        在螢幕上方隨機位置生成敵人\n
+        在螢幕上方隨機位置生成敵人，隨機選擇敵人類型\n
         """
         # 隨機選擇生成位置（螢幕上方）
         enemy_x = random.randint(50, SCREEN_WIDTH - ENEMY_SIZE - 50)
         enemy_y = random.randint(50, 150)
 
+        # 隨機選擇敵人類型
+        enemy_type = random.choice(self.enemy_types_pool)
+
         # 創建敵人
-        enemy = Enemy(enemy_x, enemy_y, self.enemy_difficulty)
+        enemy = Enemy(enemy_x, enemy_y, self.enemy_difficulty, enemy_type)
         self.enemies.append(enemy)
 
     def handle_events(self):
@@ -139,12 +158,72 @@ class BattleArenaGame:
             if event.type == pygame.QUIT:
                 self.running = False
 
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                # 處理滑鼠點擊事件
+                self._handle_mouse_click(event.button, event.pos)
+
             elif event.type == pygame.KEYDOWN:
                 self._handle_keydown(event.key)
+
+            # 處理選擇界面事件
+            if self.game_state in [
+                GAME_STATES["character_select"],
+                GAME_STATES["scene_select"],
+            ]:
+                selection_result = self.selection_ui.handle_input(event)
+                self._handle_selection_result(selection_result)
 
         # 處理連續按鍵
         if self.game_state == GAME_STATES["playing"] and self.player:
             self._handle_continuous_input()
+
+    def _handle_mouse_click(self, button, pos):
+        """
+        處理滑鼠點擊事件
+
+        參數:
+        button (int): 滑鼠按鈕（1=左鍵, 3=右鍵）
+        pos (tuple): 滑鼠點擊位置
+        """
+        if self.game_state == GAME_STATES["playing"] and self.player:
+            if button == 1:  # 滑鼠左鍵 - 射擊
+                shot_data = self.player.shoot()
+                if shot_data:
+                    # 發射子彈
+                    for bullet_info in shot_data["bullets"]:
+                        self.bullet_manager.create_bullet(
+                            bullet_info["x"],
+                            bullet_info["y"],
+                            bullet_info["angle"],
+                            bullet_info["speed"],
+                            bullet_info["damage"],
+                            "player",
+                        )
+                    self.game_stats["shots_fired"] += len(shot_data["bullets"])
+
+        elif self.game_state == GAME_STATES["game_over"]:
+            if button == 3:  # 滑鼠右鍵 - 重新開始遊戲
+                self.start_new_game()
+
+    def _handle_selection_result(self, result):
+        """
+        處理選擇界面的結果
+
+        參數:
+        result (dict): 選擇結果
+        """
+        action = result.get("action", "none")
+
+        if action == "back_to_menu":
+            self.game_state = GAME_STATES["menu"]
+        elif action == "character_selected":
+            self.selected_character = result["character"]
+            self.game_state = GAME_STATES["scene_select"]
+        elif action == "scene_selected":
+            self.selected_scene = result["scene"]
+            self.selected_character = result["character"]
+            # 選擇完畢，開始遊戲
+            self.start_new_game()
 
     def _handle_keydown(self, key):
         """
@@ -156,7 +235,9 @@ class BattleArenaGame:
         if self.game_state == GAME_STATES["menu"]:
             # 選單狀態的按鍵處理
             if key == pygame.K_SPACE:
-                self.start_new_game()
+                # 進入角色選擇
+                self.game_state = GAME_STATES["character_select"]
+                self.selection_ui.reset_selection()
             elif key == pygame.K_1:
                 self.enemy_difficulty = "weak"
             elif key == pygame.K_2:
@@ -206,6 +287,7 @@ class BattleArenaGame:
                     if skill_result["success"]:
                         # 對所有敵人造成技能傷害
                         skill_damage = skill_result["damage"]
+                        skill_type = skill_result["skill_type"]
                         enemies_hit = 0
                         for enemy in self.enemies:
                             if enemy.is_alive:
@@ -215,10 +297,12 @@ class BattleArenaGame:
                                     # 敵人被技能擊殺
                                     enemies_hit += 1
 
+                        # 顯示技能效果訊息
+                        skill_message = f"{skill_result['skill_name']}啟動！擊中 {enemies_hit} 個敵人"
                         self.game_ui.add_message(
-                            f"技能啟動！擊中 {enemies_hit} 個敵人",
+                            skill_message,
                             "achievement",
-                            COLORS["purple"],
+                            skill_result["effect_color"],
                         )
                         self.game_ui.add_message(
                             f"消耗生命值 {skill_result['health_cost']}",
@@ -248,10 +332,8 @@ class BattleArenaGame:
         # 處理移動（滑鼠優先，如果沒有滑鼠移動則使用鍵盤）
         self.player.handle_input(keys, mouse_pos, mouse_buttons)
 
-        # 處理射擊（支援滑鼠右鍵和空白鍵）
-        should_shoot = (
-            keys[KEYS["fire"]] or mouse_buttons[2]
-        )  # 空白鍵或滑鼠右鍵（索引2）
+        # 處理射擊（只支援鍵盤空白鍵，滑鼠射擊改用點擊事件處理）
+        should_shoot = keys[KEYS["fire"]]  # 只保留空白鍵射擊
 
         if should_shoot:
             shot_data = self.player.shoot()
@@ -289,6 +371,7 @@ class BattleArenaGame:
             return
 
         # 更新敵人
+        enemies_killed_this_frame = 0
         for enemy in self.enemies[:]:
             if enemy.is_alive:
                 enemy.update(self.player, SCREEN_WIDTH, SCREEN_HEIGHT)
@@ -309,11 +392,21 @@ class BattleArenaGame:
                 self.enemies.remove(enemy)
                 self.game_stats["enemies_killed"] += 1
                 self.score += 100
+                enemies_killed_this_frame += 1
 
                 # 敵人死亡時可能掉落道具
                 self.powerup_manager.spawn_powerup_on_enemy_death(enemy.x, enemy.y)
 
                 self.game_ui.add_message(f"+100 分", "achievement", COLORS["yellow"])
+
+        # AI增殖機制：每殺死一個敵人，增加敵人數量上限
+        if enemies_killed_this_frame > 0:
+            self.enemy_spawn_count += enemies_killed_this_frame
+            self.game_ui.add_message(
+                f"敵人增援來襲！目標敵人數：{self.enemy_spawn_count}",
+                "warning",
+                COLORS["red"],
+            )
 
         # 更新子彈
         self.bullet_manager.update(SCREEN_WIDTH, SCREEN_HEIGHT)
@@ -332,11 +425,18 @@ class BattleArenaGame:
         # 更新UI
         self.game_ui.update()
 
-        # 檢查是否需要生成新敵人
-        if len(self.enemies) == 0:
-            self._spawn_enemy()
-        elif len(self.enemies) < 2 and random.random() < 0.005:  # 小機率生成第二個敵人
-            self._spawn_enemy()
+        # 檢查是否需要生成新敵人（AI增殖機制）
+        current_enemy_count = len([e for e in self.enemies if e.is_alive])
+        if current_enemy_count < self.enemy_spawn_count:
+            # 需要補充敵人到目標數量
+            enemies_to_spawn = self.enemy_spawn_count - current_enemy_count
+            for _ in range(enemies_to_spawn):
+                self._spawn_enemy()
+
+        # 限制敵人數量上限（避免遊戲變得太困難）
+        max_enemies = 8  # 最多同時存在8個敵人
+        if len(self.enemies) > max_enemies:
+            self.enemies = self.enemies[:max_enemies]
 
     def _process_collision_results(self, results):
         """
@@ -385,21 +485,27 @@ class BattleArenaGame:
 
         # 選單選項
         menu_items = [
-            "按 SPACE 開始遊戲",
+            "按 SPACE 開始選擇角色",
             "",
             "遊戲設定:",
             f"AI難度: {AI_CONFIGS[self.enemy_difficulty]['name']} (按 1/2/3 切換)",
             f"玩家血量: {self.player_max_health} (+/-調整)",
             f"血量顯示: {'數字' if self.health_display_mode == 'number' else '血條'} (按 H 切換)",
             "",
+            "角色系統:",
+            "🐱 貓 - 雷射技能：高精準度攻擊",
+            "🐶 狗 - 火焰技能：持續燃燒傷害",
+            "🐺 狼 - 冰凍技能：減緩敵人並造成傷害",
+            "",
             "操作說明:",
             "滑鼠 - 移動（滑鼠位置控制角色移動）",
-            "滑鼠右鍵 - 射擊",
+            "滑鼠左鍵 - 射擊",
             "或使用 WASD - 移動，空白鍵 - 射擊",
             "R - 填裝",
             "1/2/3/4/5 - 切換武器",
-            "Q - 使用技能（消耗10%生命值，全螢幕攻擊）",
+            "Q - 使用角色技能（消耗10%生命值，冷卻30秒）",
             "ESC - 返回選單",
+            "遊戲結束後：R重新開始 或 滑鼠右鍵重新開始",
         ]
 
         start_y = 250
@@ -416,8 +522,14 @@ class BattleArenaGame:
         """
         繪製遊戲畫面\n
         """
-        # 背景
-        self.screen.fill(COLORS["black"])
+        # 根據選擇的場景設置背景
+        if hasattr(self, "selected_scene") and self.selected_scene:
+            scene_config = SCENE_CONFIGS.get(self.selected_scene, SCENE_CONFIGS["lava"])
+            background_color = scene_config["background_color"]
+        else:
+            background_color = COLORS["black"]
+
+        self.screen.fill(background_color)
 
         # 繪製遊戲物件
         if self.player:
@@ -450,6 +562,11 @@ class BattleArenaGame:
         """
         if self.game_state == GAME_STATES["menu"]:
             self.draw_menu()
+        elif self.game_state in [
+            GAME_STATES["character_select"],
+            GAME_STATES["scene_select"],
+        ]:
+            self.selection_ui.draw(self.screen)
         elif self.game_state == GAME_STATES["playing"]:
             self.draw_game()
         elif self.game_state == GAME_STATES["game_over"]:

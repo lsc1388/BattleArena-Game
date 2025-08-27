@@ -29,7 +29,7 @@ class Player:
     is_reloading (bool): 是否正在填裝彈藥\n
     """
 
-    def __init__(self, x, y, max_health=PLAYER_DEFAULT_HEALTH):
+    def __init__(self, x, y, max_health=PLAYER_DEFAULT_HEALTH, character_type="cat"):
         """
         初始化玩家角色\n
         \n
@@ -37,12 +37,19 @@ class Player:
         x (float): 初始 X 座標位置\n
         y (float): 初始 Y 座標位置\n
         max_health (int): 最大生命值，預設為 100，範圍 50-200\n
+        character_type (str): 角色類型 ("cat", "dog", "wolf")\n
         """
         # 位置和尺寸設定
         self.x = x
         self.y = y
         self.width = PLAYER_SIZE
         self.height = PLAYER_SIZE
+
+        # 角色設定
+        self.character_type = character_type
+        self.character_config = CHARACTER_CONFIGS.get(
+            character_type, CHARACTER_CONFIGS["cat"]
+        )
 
         # 生命值設定
         self.max_health = max_health
@@ -383,26 +390,33 @@ class Player:
 
     def use_skill(self):
         """
-        使用特殊技能 - 全螢幕範圍攻擊\n
+        使用角色專屬技能\n
         \n
-        技能效果：\n
-        - 冷卻時間：2分鐘（120秒）\n
+        不同角色的技能效果：\n
+        - 貓：雷射技能 - 高精準度攻擊\n
+        - 狗：火焰技能 - 持續燃燒傷害\n
+        - 狼：冰凍技能 - 減緩敵人並造成傷害\n
+        \n
+        技能統一設定：\n
+        - 冷卻時間：30秒\n
         - 生命值消耗：10%當前最大生命值\n
         - 攻擊範圍：整個視窗\n
-        - 傷害：對所有敵人造成大量傷害\n
         \n
         回傳:\n
         dict: 技能使用結果，包含是否成功和技能資訊\n
         """
         current_time = pygame.time.get_ticks()
+        skill_config = self.character_config["skill"]
 
-        # 檢查技能冷卻時間（2分鐘 = 120000毫秒）
-        skill_cooldown_duration = 120000
-        if current_time - self.last_skill_time < skill_cooldown_duration:
-            return {"success": False, "reason": "技能冷卻中"}
+        # 檢查技能冷卻時間
+        if current_time - self.last_skill_time < skill_config["cooldown"]:
+            remaining_time = (
+                skill_config["cooldown"] - (current_time - self.last_skill_time)
+            ) / 1000
+            return {"success": False, "reason": f"技能冷卻中 ({remaining_time:.1f}秒)"}
 
-        # 檢查生命值是否足夠（需要至少10%生命值）
-        skill_cost = int(self.max_health * 0.1)
+        # 檢查生命值是否足夠
+        skill_cost = int(self.max_health * (skill_config["health_cost_percent"] / 100))
         if self.health <= skill_cost:
             return {"success": False, "reason": "生命值不足"}
 
@@ -414,15 +428,19 @@ class Player:
             self.health = 1
 
         # 啟動技能效果
-        skill_damage = 200  # 技能傷害值
         self.last_skill_time = current_time
 
+        # 根據角色類型返回不同的技能效果
         return {
             "success": True,
-            "damage": skill_damage,
+            "character_type": self.character_type,
+            "skill_type": skill_config["type"],
+            "skill_name": skill_config["name"],
+            "damage": skill_config["damage"],
+            "effect_color": skill_config["effect_color"],
             "range": "fullscreen",  # 全螢幕範圍
-            "effect_type": "area_damage",
             "health_cost": skill_cost,
+            "description": skill_config["description"],
         }
 
     def apply_powerup(self, powerup_type):
@@ -565,8 +583,8 @@ class Player:
         """
         繪製玩家角色\n
         \n
-        根據當前狀態顯示不同顏色：\n
-        - 正常：藍色\n
+        根據角色類型和當前狀態顯示不同顏色：\n
+        - 角色顏色：依據角色類型\n
         - 填裝中：黃色\n
         - 技能狀態：紫色\n
         - 生命值低：紅色\n
@@ -575,7 +593,8 @@ class Player:
         screen (pygame.Surface): 遊戲畫面物件\n
         """
         # 根據狀態決定顏色
-        color = COLORS["blue"]  # 預設藍色
+        base_color = self.character_config["color"]  # 角色基本顏色
+        color = base_color
 
         if "skill_boost" in self.powerups:
             color = COLORS["purple"]  # 技能狀態用紫色
@@ -588,9 +607,54 @@ class Player:
         pygame.draw.rect(screen, color, (self.x, self.y, self.width, self.height))
 
         # 畫邊框讓玩家更明顯
+        border_color = COLORS["white"]
+
+        # 如果正在使用技能，邊框顯示技能顏色
+        if "skill_effect" in self.powerups:
+            border_color = self.character_config["skill"]["effect_color"]
+
         pygame.draw.rect(
-            screen, COLORS["white"], (self.x, self.y, self.width, self.height), 2
+            screen, border_color, (self.x, self.y, self.width, self.height), 2
         )
+
+        # 在角色上方顯示角色類型標識（簡化的圖示）
+        self._draw_character_indicator(screen)
+
+    def _draw_character_indicator(self, screen):
+        """
+        在角色上方繪製角色類型指示器
+
+        參數:
+        screen (pygame.Surface): 遊戲畫面物件
+        """
+        indicator_size = 8
+        indicator_x = self.x + self.width // 2 - indicator_size // 2
+        indicator_y = self.y - 15
+
+        # 根據角色類型繪製不同形狀的指示器
+        if self.character_type == "cat":
+            # 貓 - 橙色圓形（代表敏捷）
+            pygame.draw.circle(
+                screen,
+                self.character_config["color"],
+                (indicator_x + indicator_size // 2, indicator_y + indicator_size // 2),
+                indicator_size // 2,
+            )
+        elif self.character_type == "dog":
+            # 狗 - 棕色方形（代表忠誠可靠）
+            pygame.draw.rect(
+                screen,
+                self.character_config["color"],
+                (indicator_x, indicator_y, indicator_size, indicator_size),
+            )
+        elif self.character_type == "wolf":
+            # 狼 - 灰色三角形（代表野性）
+            points = [
+                (indicator_x + indicator_size // 2, indicator_y),
+                (indicator_x, indicator_y + indicator_size),
+                (indicator_x + indicator_size, indicator_y + indicator_size),
+            ]
+            pygame.draw.polygon(screen, self.character_config["color"], points)
 
     def get_rect(self):
         """
@@ -655,7 +719,7 @@ class Player:
         dict: 技能冷卻狀態資訊\n
         """
         current_time = pygame.time.get_ticks()
-        skill_cooldown_duration = 120000  # 2分鐘
+        skill_cooldown_duration = self.character_config["skill"]["cooldown"]
         time_since_last_skill = current_time - self.last_skill_time
 
         if time_since_last_skill < skill_cooldown_duration:
@@ -666,10 +730,12 @@ class Player:
                 "ready": False,
                 "cooldown_remaining": cooldown_remaining,
                 "total_cooldown": skill_cooldown_duration / 1000,
+                "skill_name": self.character_config["skill"]["name"],
             }
         else:
             return {
                 "ready": True,
                 "cooldown_remaining": 0,
                 "total_cooldown": skill_cooldown_duration / 1000,
+                "skill_name": self.character_config["skill"]["name"],
             }

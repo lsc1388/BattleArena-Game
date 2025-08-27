@@ -29,7 +29,7 @@ class Enemy:
     move_pattern (str): 移動模式類型\n
     """
 
-    def __init__(self, x, y, difficulty="medium"):
+    def __init__(self, x, y, difficulty="medium", enemy_type="robot"):
         """
         初始化AI敵人\n
         \n
@@ -37,6 +37,7 @@ class Enemy:
         x (float): 初始 X 座標位置\n
         y (float): 初始 Y 座標位置\n
         difficulty (str): AI難度等級，可選 'weak', 'medium', 'strong'\n
+        enemy_type (str): 敵人類型，可選 'robot', 'alien', 'zombie'\n
         """
         # 位置和尺寸設定
         self.x = x
@@ -44,22 +45,29 @@ class Enemy:
         self.width = ENEMY_SIZE
         self.height = ENEMY_SIZE
 
+        # 敵人類型設定
+        self.enemy_type = enemy_type
+        self.type_config = AI_ENEMY_TYPES[enemy_type]
+
         # 難度設定
         self.difficulty = difficulty
         self.config = AI_CONFIGS[difficulty]
 
-        # 生命值設定
-        self.max_health = self.config["health"]
+        # 生命值設定（結合類型修飾符）
+        base_health = self.config["health"]
+        self.max_health = int(base_health * self.type_config["health_modifier"])
         self.health = self.max_health
         self.is_alive = True
 
-        # 移動相關
-        self.speed = ENEMY_SPEEDS[difficulty]
+        # 移動相關（結合類型修飾符）
+        base_speed = ENEMY_SPEEDS[difficulty]
+        self.speed = base_speed * self.type_config["speed_modifier"]
         self.velocity_x = 0
         self.velocity_y = 0
 
-        # 戰鬥相關
-        self.accuracy = self.config["accuracy"]
+        # 戰鬥相關（結合類型修飾符）
+        base_accuracy = self.config["accuracy"]
+        self.accuracy = base_accuracy * self.type_config["accuracy_modifier"]
         self.fire_rate = self.config["fire_rate"]
         self.last_shot_time = 0
 
@@ -482,10 +490,10 @@ class Enemy:
         """
         繪製敵人\n
         \n
-        根據難度和狀態顯示不同顏色：\n
-        - 弱AI：綠色\n
-        - 中AI：橙色\n
-        - 強AI：紅色\n
+        根據敵人類型和狀態顯示不同顏色和形狀：\n
+        - 機器人：金屬灰色，方形\n
+        - 外星人：綠色，圓形\n
+        - 殭屍：深綠色，不規則形狀\n
         - 受傷狀態：顏色變暗\n
         \n
         參數:\n
@@ -494,13 +502,8 @@ class Enemy:
         if not self.is_alive:
             return
 
-        # 根據難度決定基本顏色
-        if self.difficulty == "weak":
-            base_color = COLORS["green"]
-        elif self.difficulty == "medium":
-            base_color = COLORS["orange"]
-        else:  # strong
-            base_color = COLORS["red"]
+        # 根據敵人類型決定基本顏色
+        base_color = self.type_config["color"]
 
         # 根據血量調整顏色深度
         health_ratio = self.health / self.max_health
@@ -508,29 +511,99 @@ class Enemy:
             # 血量低時顏色變暗
             base_color = tuple(int(c * 0.7) for c in base_color)
 
-        # 畫敵人方塊
-        pygame.draw.rect(screen, base_color, (self.x, self.y, self.width, self.height))
+        # 根據敵人類型繪製不同形狀
+        if self.enemy_type == "robot":
+            # 機器人 - 方形
+            pygame.draw.rect(
+                screen, base_color, (self.x, self.y, self.width, self.height)
+            )
+            pygame.draw.rect(
+                screen, COLORS["white"], (self.x, self.y, self.width, self.height), 2
+            )
 
-        # 畫邊框
-        pygame.draw.rect(
-            screen, COLORS["white"], (self.x, self.y, self.width, self.height), 2
-        )
+            # 機器人特有的天線
+            antenna_x = self.x + self.width // 2
+            antenna_y = self.y - 5
+            pygame.draw.line(
+                screen,
+                COLORS["white"],
+                (antenna_x, antenna_y),
+                (antenna_x, antenna_y - 8),
+                2,
+            )
+            pygame.draw.circle(screen, COLORS["yellow"], (antenna_x, antenna_y - 8), 3)
 
-        # 顯示AI等級指示器（角落小點）
-        indicator_size = 5
-        if self.difficulty == "weak":
-            indicator_color = COLORS["white"]
-        elif self.difficulty == "medium":
-            indicator_color = COLORS["yellow"]
-        else:
-            indicator_color = COLORS["red"]
+        elif self.enemy_type == "alien":
+            # 外星人 - 圓形
+            center_x = self.x + self.width // 2
+            center_y = self.y + self.height // 2
+            radius = self.width // 2
+            pygame.draw.circle(screen, base_color, (center_x, center_y), radius)
+            pygame.draw.circle(screen, COLORS["white"], (center_x, center_y), radius, 2)
 
-        pygame.draw.circle(
-            screen,
-            indicator_color,
-            (int(self.x + self.width - 8), int(self.y + 8)),
-            indicator_size,
-        )
+            # 外星人特有的眼睛
+            eye_size = 4
+            eye1_x, eye1_y = center_x - 8, center_y - 5
+            eye2_x, eye2_y = center_x + 8, center_y - 5
+            pygame.draw.circle(screen, COLORS["black"], (eye1_x, eye1_y), eye_size)
+            pygame.draw.circle(screen, COLORS["black"], (eye2_x, eye2_y), eye_size)
+
+        elif self.enemy_type == "zombie":
+            # 殭屍 - 不規則形狀
+            pygame.draw.rect(
+                screen, base_color, (self.x, self.y, self.width, self.height)
+            )
+            pygame.draw.rect(
+                screen, COLORS["white"], (self.x, self.y, self.width, self.height), 2
+            )
+
+            # 殭屍特有的破損效果（小缺口）
+            damage_spots = [
+                (self.x + 5, self.y + 5, 6, 6),
+                (self.x + self.width - 8, self.y + self.height - 8, 5, 5),
+                (self.x + self.width // 2, self.y + 2, 4, 4),
+            ]
+            for spot in damage_spots:
+                pygame.draw.rect(screen, COLORS["black"], spot)
+
+        # 顯示敵人類型指示器（角落標識）
+        self._draw_type_indicator(screen)
+
+    def _draw_type_indicator(self, screen):
+        """
+        繪製敵人類型指示器
+
+        參數:
+        screen (pygame.Surface): 遊戲畫面物件
+        """
+        indicator_size = 6
+        indicator_x = self.x + self.width - 10
+        indicator_y = self.y + 5
+
+        # 根據敵人類型繪製不同指示器
+        if self.enemy_type == "robot":
+            # 機器人 - 金屬色方塊
+            pygame.draw.rect(
+                screen,
+                (192, 192, 192),
+                (indicator_x, indicator_y, indicator_size, indicator_size),
+            )
+        elif self.enemy_type == "alien":
+            # 外星人 - 綠色圓點
+            pygame.draw.circle(
+                screen,
+                (0, 255, 0),
+                (indicator_x + indicator_size // 2, indicator_y + indicator_size // 2),
+                indicator_size // 2,
+            )
+        elif self.enemy_type == "zombie":
+            # 殭屍 - 暗綠色三角形
+            points = [
+                (indicator_x + indicator_size // 2, indicator_y),
+                (indicator_x, indicator_y + indicator_size),
+                (indicator_x + indicator_size, indicator_y + indicator_size),
+            ]
+            pygame.draw.polygon(screen, (0, 100, 0), points)
 
     def get_rect(self):
         """
@@ -549,6 +622,8 @@ class Enemy:
         dict: 敵人狀態資訊\n
         """
         return {
+            "enemy_type": self.enemy_type,
+            "type_name": self.type_config["name"],
             "difficulty": self.difficulty,
             "health": self.health,
             "max_health": self.max_health,
