@@ -51,7 +51,7 @@ All entities follow this pattern:
 - **Collision interface**: `get_rect()` method for pygame.Rect
 - **Drawing method**: `draw(screen)` with state-based colors
 
-### Configuration-Driven Development 
+### Configuration-Driven Development
 
 **Essential workflow**: All game mechanics come from `src/config.py` dictionaries:
 
@@ -101,7 +101,7 @@ text_surface = font_manager.render_text("文字", "medium", COLORS["white"])
 ### Adding New Character Types
 
 1. Define in `CHARACTER_CONFIGS` with skill configuration
-2. Update `SelectionUI` character selection if needed  
+2. Update `SelectionUI` character selection if needed
 3. Implement skill logic in `Player.use_skill()` method
 4. Test skill cooldown, health cost, and damage effects
 

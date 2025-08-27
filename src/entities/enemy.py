@@ -53,9 +53,8 @@ class Enemy:
         self.difficulty = difficulty
         self.config = AI_CONFIGS[difficulty]
 
-        # 生命值設定（結合類型修飾符）
-        base_health = self.config["health"]
-        self.max_health = int(base_health * self.type_config["health_modifier"])
+        # 生命值設定（使用類型的固定血量）
+        self.max_health = self.type_config["base_health"]
         self.health = self.max_health
         self.is_alive = True
 

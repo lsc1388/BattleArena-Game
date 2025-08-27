@@ -252,7 +252,7 @@ AI_ENEMY_TYPES = {
         "name": "機器人",
         "emoji": "🤖",
         "color": (128, 128, 128),  # 金屬灰
-        "health_modifier": 1.0,
+        "base_health": 50,  # 機器人生命為50
         "speed_modifier": 1.0,
         "accuracy_modifier": 1.2,  # 機器人瞄準較準
         "description": "機械化戰鬥單位",
@@ -261,7 +261,7 @@ AI_ENEMY_TYPES = {
         "name": "外星人",
         "emoji": "👽",
         "color": (0, 255, 0),  # 綠色
-        "health_modifier": 0.8,
+        "base_health": 100,  # 外星人生命為100
         "speed_modifier": 1.3,  # 外星人移動較快
         "accuracy_modifier": 1.0,
         "description": "神秘的外星生物",
@@ -270,7 +270,7 @@ AI_ENEMY_TYPES = {
         "name": "殭屍",
         "emoji": "🧟",
         "color": (0, 100, 0),  # 深綠色
-        "health_modifier": 1.5,  # 殭屍血量較高
+        "base_health": 150,  # 殭屍生命為150
         "speed_modifier": 0.7,  # 殭屍移動較慢
         "accuracy_modifier": 0.8,  # 殭屍瞄準較差
         "description": "不死的怪物",

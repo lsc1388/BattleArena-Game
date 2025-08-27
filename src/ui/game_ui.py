@@ -54,6 +54,12 @@ class GameUI:
 
         # 血量顯示模式（血條或數字）
         self.health_display_mode = "bar"  # 'bar' 或 'number'
+        
+        # 準心系統設定
+        self.crosshair_enabled = True
+        self.crosshair_size = 15
+        self.crosshair_thickness = 2
+        self.crosshair_gap = 5
 
     def update(self):
         """
@@ -101,6 +107,9 @@ class GameUI:
 
         # 繪製訊息提示
         self._draw_messages(screen)
+
+        # 繪製滑鼠準心
+        self._draw_crosshair(screen)
 
         # 繪製小地圖（可選）
         self._draw_minimap(screen, player, enemies)
@@ -346,6 +355,72 @@ class GameUI:
                     screen, health_color, (bar_x, bar_y, health_width, bar_height)
                 )
 
+    def _draw_crosshair(self, screen):
+        """
+        繪製滑鼠準心 - 提供精確瞄準的視覺回饋\n
+        \n
+        在滑鼠位置繪製十字準心，包含以下特色：\n
+        1. 可調整大小和厚度\n
+        2. 中央留空隙便於瞄準\n
+        3. 支援不同狀態的顏色變化\n
+        \n
+        參數:\n
+        screen (pygame.Surface): 遊戲畫面物件\n
+        """
+        if not self.crosshair_enabled:
+            return
+        
+        # 取得滑鼠位置
+        mouse_x, mouse_y = pygame.mouse.get_pos()
+        
+        # 設定準心顏色 - 可以根據玩家狀態調整
+        crosshair_color = COLORS["white"]  # 預設白色
+        
+        # 計算準心的線條位置
+        half_size = self.crosshair_size // 2
+        gap = self.crosshair_gap
+        thickness = self.crosshair_thickness
+        
+        # 繪製水平線條（左右兩段）
+        # 左邊線條
+        pygame.draw.rect(
+            screen, 
+            crosshair_color,
+            (mouse_x - half_size, mouse_y - thickness // 2, 
+             half_size - gap, thickness)
+        )
+        # 右邊線條
+        pygame.draw.rect(
+            screen, 
+            crosshair_color,
+            (mouse_x + gap, mouse_y - thickness // 2, 
+             half_size - gap, thickness)
+        )
+        
+        # 繪製垂直線條（上下兩段）
+        # 上邊線條
+        pygame.draw.rect(
+            screen, 
+            crosshair_color,
+            (mouse_x - thickness // 2, mouse_y - half_size, 
+             thickness, half_size - gap)
+        )
+        # 下邊線條
+        pygame.draw.rect(
+            screen, 
+            crosshair_color,
+            (mouse_x - thickness // 2, mouse_y + gap, 
+             thickness, half_size - gap)
+        )
+        
+        # 在準心中央加上一個小點作為精確瞄準點
+        pygame.draw.circle(
+            screen, 
+            crosshair_color, 
+            (mouse_x, mouse_y), 
+            1  # 小點半徑
+        )
+
     def _draw_messages(self, screen):
         """
         繪製訊息提示\n
@@ -370,6 +445,10 @@ class GameUI:
             # 繪製訊息
             message_y = message_start_y + i * 30
             color = message.get("color", COLORS["white"])
+
+            # 驗證顏色格式
+            if not isinstance(color, (tuple, list)) or len(color) != 3:
+                color = COLORS["white"]
 
             # 如果訊息有特殊顏色需求
             if message.get("type") == "powerup":

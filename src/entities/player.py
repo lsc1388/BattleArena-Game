@@ -322,11 +322,14 @@ class Player:
 
         return True
 
-    def shoot(self):
+    def shoot(self, target_pos=None):
         """
         執行射擊動作\n
         \n
         消耗彈藥並記錄射擊時間\n
+        \n
+        參數:\n
+        target_pos (tuple): 目標位置 (x, y)，如果提供則朝該方向射擊\n
         \n
         回傳:\n
         dict: 射擊資訊，包含子彈數量和散布角度\n
@@ -341,6 +344,22 @@ class Player:
 
         # 記錄射擊時間
         self.last_shot_time = pygame.time.get_ticks()
+
+        # 計算射擊角度
+        if target_pos:
+            # 朝目標位置射擊
+            player_center_x = self.x + self.width / 2
+            player_center_y = self.y + self.height / 2
+            target_x, target_y = target_pos
+
+            dx = target_x - player_center_x
+            dy = target_y - player_center_y
+
+            # 計算角度（degrees）
+            base_angle = math.degrees(math.atan2(dy, dx)) + 90  # +90調整為向上為0度
+        else:
+            # 預設向上射擊
+            base_angle = 0
 
         # 準備射擊資料
         shot_data = {
@@ -371,11 +390,11 @@ class Player:
         for i in range(bullet_count):
             if bullet_count == 1:
                 # 單發子彈，直線射擊
-                angle = 0
+                angle = base_angle
             else:
                 # 多發子彈，計算散布角度
                 angle_step = spread_angle / (bullet_count - 1)
-                angle = -spread_angle / 2 + i * angle_step
+                angle = base_angle - spread_angle / 2 + i * angle_step
 
             bullet_info = {
                 "x": self.x + self.width / 2,

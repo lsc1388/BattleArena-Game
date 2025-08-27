@@ -187,7 +187,8 @@ class BattleArenaGame:
         """
         if self.game_state == GAME_STATES["playing"] and self.player:
             if button == 1:  # 滑鼠左鍵 - 射擊
-                shot_data = self.player.shoot()
+                # 朝滑鼠位置射擊
+                shot_data = self.player.shoot(target_pos=pos)
                 if shot_data:
                     # 發射子彈
                     for bullet_info in shot_data["bullets"]:
@@ -336,7 +337,7 @@ class BattleArenaGame:
         should_shoot = keys[KEYS["fire"]]  # 只保留空白鍵射擊
 
         if should_shoot:
-            shot_data = self.player.shoot()
+            shot_data = self.player.shoot()  # 鍵盤射擊不指定目標位置，向上射擊
             if shot_data:
                 # 發射子彈
                 for bullet_info in shot_data["bullets"]:
@@ -523,10 +524,18 @@ class BattleArenaGame:
         繪製遊戲畫面\n
         """
         # 根據選擇的場景設置背景
-        if hasattr(self, "selected_scene") and self.selected_scene:
-            scene_config = SCENE_CONFIGS.get(self.selected_scene, SCENE_CONFIGS["lava"])
-            background_color = scene_config["background_color"]
-        else:
+        try:
+            if (
+                hasattr(self, "selected_scene")
+                and self.selected_scene
+                and self.selected_scene in SCENE_CONFIGS
+            ):
+                scene_config = SCENE_CONFIGS[self.selected_scene]
+                background_color = scene_config["background_color"]
+            else:
+                background_color = COLORS["black"]
+        except Exception as e:
+            print(f"場景背景設置錯誤: {e}, 使用預設黑色背景")
             background_color = COLORS["black"]
 
         self.screen.fill(background_color)
@@ -607,11 +616,17 @@ def main():
     """
     try:
         # 創建並運行遊戲
+        print("🎮 開始初始化遊戲...")
         game = BattleArenaGame()
+        print("🎮 遊戲初始化完成，開始運行...")
         game.run()
 
     except Exception as e:
+        import traceback
+
         print(f"遊戲運行發生錯誤: {e}")
+        print("詳細錯誤信息:")
+        traceback.print_exc()
         pygame.quit()
         sys.exit(1)
 
