@@ -115,12 +115,12 @@ class SelectionUI:
         # 標題
         title_text = "選擇你的角色"
         title_surface = font_manager.render_text(title_text, "large", COLORS["white"])
-        title_rect = title_surface.get_rect(center=(self.screen_width // 2, 100))
+        title_rect = title_surface.get_rect(center=(self.screen_width // 2, 60))
         screen.blit(title_surface, title_rect)
 
         # 角色選項
         options_start_x = self.screen_width // 2 - 300
-        options_y = 250
+        options_y = 150
         option_width = 200
         option_spacing = 200
 
@@ -152,7 +152,7 @@ class SelectionUI:
         # 標題
         title_text = "選擇戰鬥場景"
         title_surface = font_manager.render_text(title_text, "large", COLORS["white"])
-        title_rect = title_surface.get_rect(center=(self.screen_width // 2, 100))
+        title_rect = title_surface.get_rect(center=(self.screen_width // 2, 60))
         screen.blit(title_surface, title_rect)
 
         # 顯示已選擇的角色
@@ -162,12 +162,12 @@ class SelectionUI:
             char_surface = font_manager.render_text(
                 char_text, "medium", COLORS["yellow"]
             )
-            char_rect = char_surface.get_rect(center=(self.screen_width // 2, 150))
+            char_rect = char_surface.get_rect(center=(self.screen_width // 2, 90))
             screen.blit(char_surface, char_rect)
 
         # 場景選項
         options_start_x = self.screen_width // 2 - 300
-        options_y = 250
+        options_y = 150
         option_spacing = 200
 
         for i, scene_key in enumerate(self.scene_options):
@@ -194,7 +194,7 @@ class SelectionUI:
         is_selected (bool): 是否被選中
         """
         card_width = 180
-        card_height = 240
+        card_height = 200
 
         # 卡片背景
         card_color = COLORS["white"] if is_selected else COLORS["gray"]
@@ -240,7 +240,7 @@ class SelectionUI:
         # 技能傷害資訊
         damage_text = f"傷害: {character_config['skill']['damage']}"
         damage_surface = font_manager.render_text(damage_text, "tiny", COLORS["red"])
-        damage_rect = damage_surface.get_rect(center=(x + card_width // 2, y + 190))
+        damage_rect = damage_surface.get_rect(center=(x + card_width // 2, y + 160))
         screen.blit(damage_surface, damage_rect)
 
         # 角色特性資訊
@@ -255,7 +255,7 @@ class SelectionUI:
             trait_text = "均衡型"
 
         trait_surface = font_manager.render_text(trait_text, "tiny", COLORS["blue"])
-        trait_rect = trait_surface.get_rect(center=(x + card_width // 2, y + 205))
+        trait_rect = trait_surface.get_rect(center=(x + card_width // 2, y + 175))
         screen.blit(trait_surface, trait_rect)
 
         # 選中提示
@@ -264,7 +264,7 @@ class SelectionUI:
             select_surface = font_manager.render_text(
                 select_text, "tiny", COLORS["green"]
             )
-            select_rect = select_surface.get_rect(center=(x + card_width // 2, y + 225))
+            select_rect = select_surface.get_rect(center=(x + card_width // 2, y + 190))
             screen.blit(select_surface, select_rect)
 
     def _draw_scene_card(self, screen, scene_config, x, y, is_selected):
@@ -278,7 +278,7 @@ class SelectionUI:
         is_selected (bool): 是否被選中
         """
         card_width = 180
-        card_height = 240
+        card_height = 200
 
         # 卡片背景
         card_color = scene_config["background_color"] if is_selected else COLORS["gray"]
@@ -330,14 +330,14 @@ class SelectionUI:
         name_surface = font_manager.render_text(
             scene_config["name"], "medium", COLORS["white"]
         )
-        name_rect = name_surface.get_rect(center=(x + card_width // 2, y + 150))
+        name_rect = name_surface.get_rect(center=(x + card_width // 2, y + 130))
         screen.blit(name_surface, name_rect)
 
         # 場景描述
         desc_surface = font_manager.render_text(
             scene_config["description"], "small", COLORS["white"]
         )
-        desc_rect = desc_surface.get_rect(center=(x + card_width // 2, y + 180))
+        desc_rect = desc_surface.get_rect(center=(x + card_width // 2, y + 155))
         screen.blit(desc_surface, desc_rect)
 
         # 選中提示
@@ -346,7 +346,7 @@ class SelectionUI:
             select_surface = font_manager.render_text(
                 select_text, "tiny", COLORS["yellow"]
             )
-            select_rect = select_surface.get_rect(center=(x + card_width // 2, y + 215))
+            select_rect = select_surface.get_rect(center=(x + card_width // 2, y + 180))
             screen.blit(select_surface, select_rect)
 
     def _draw_controls_help(self, screen, selection_type):
@@ -357,7 +357,7 @@ class SelectionUI:
         screen: pygame顯示表面
         selection_type (str): 選擇類型 ("character" 或 "scene")
         """
-        help_y = self.screen_height - 100
+        help_y = self.screen_height - 80
 
         controls = ["← → 選擇", "ENTER 確認", "ESC 返回主選單"]
 

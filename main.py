@@ -678,7 +678,7 @@ class BattleArenaGame:
         # 遊戲標題
         title_text = "BattleArena"
         title_surface = font_manager.render_text(title_text, "large", COLORS["white"])
-        title_rect = title_surface.get_rect(center=(SCREEN_WIDTH // 2, 150))
+        title_rect = title_surface.get_rect(center=(SCREEN_WIDTH // 2, 80))
         self.screen.blit(title_surface, title_rect)
 
         # 副標題
@@ -686,7 +686,7 @@ class BattleArenaGame:
         subtitle_surface = font_manager.render_text(
             subtitle_text, "medium", COLORS["gray"]
         )
-        subtitle_rect = subtitle_surface.get_rect(center=(SCREEN_WIDTH // 2, 190))
+        subtitle_rect = subtitle_surface.get_rect(center=(SCREEN_WIDTH // 2, 110))
         self.screen.blit(subtitle_surface, subtitle_rect)
 
         # 選單選項
@@ -716,13 +716,13 @@ class BattleArenaGame:
             "遊戲結束後：R重新開始 或 滑鼠右鍵重新開始",
         ]
 
-        start_y = 250
+        start_y = 150
         for i, item in enumerate(menu_items):
             if item:  # 跳過空字串
                 color = COLORS["yellow"] if "按" in item else COLORS["white"]
                 text_surface = font_manager.render_text(item, "small", color)
                 text_rect = text_surface.get_rect(
-                    center=(SCREEN_WIDTH // 2, start_y + i * 25)
+                    center=(SCREEN_WIDTH // 2, start_y + i * 20)
                 )
                 self.screen.blit(text_surface, text_rect)
 
