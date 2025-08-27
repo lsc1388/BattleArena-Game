@@ -19,6 +19,7 @@ This is a **pygame-based 2D shooting game** with a clean modular architecture. T
 - **Manager Pattern**: `BulletManager`, `PowerUpManager` handle object pools and lifecycle
 - **Configuration-Driven**: All game mechanics defined in `WEAPON_CONFIGS`, `AI_CONFIGS`, `POWERUP_EFFECTS`
 - **Chinese Localization**: FontManager singleton (`font_manager`) handles font detection and caching
+- **Mouse + Keyboard Control**: Dual input system with mouse position movement and mouse clicking for shooting
 
 ## Critical Development Patterns
 
@@ -32,6 +33,33 @@ def method_name(self):  # snake_case for functions/variables
     完整的繁體中文文檔字串\n  # Documentation with \n breaks
     """
     # 每行重要邏輯都要有繁體中文註解說明在做什麼
+```
+
+**Critical Naming Convention**: 
+- Variables: `snake_case` (e.g., `enemy_spawn_count`, `current_weapon`)
+- Classes: `PascalCase` (e.g., `BattleArenaGame`, `CollisionSystem`)
+- Constants: `SCREAMING_SNAKE_CASE` (e.g., `SCREEN_WIDTH`, `PLAYER_SIZE`)
+
+### Event-Driven Input Architecture
+
+**Dual Input System**: The game uses both event-based and continuous input:
+- **Event-based**: `_handle_mouse_click()`, `_handle_keydown()` for discrete actions
+- **Continuous**: `_handle_continuous_input()` for movement and sustained actions
+- **Mouse Control**: Player moves toward mouse position, shoots at mouse click location
+
+```python
+# ✅ Input handling pattern
+def handle_events(self):
+    for event in pygame.event.get():
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            self._handle_mouse_click(event.button, event.pos)
+        elif event.type == pygame.KEYDOWN:
+            self._handle_keydown(event.key)
+
+def _handle_continuous_input(self):
+    keys = pygame.key.get_pressed()
+    mouse_pos = pygame.mouse.get_pos()
+    self.player.handle_input(keys, mouse_pos, mouse_buttons)
 ```
 
 ### Manager Pattern Architecture
