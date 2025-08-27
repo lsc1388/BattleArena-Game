@@ -357,7 +357,7 @@ class SelectionUI:
         screen: pygame顯示表面
         selection_type (str): 選擇類型 ("character" 或 "scene")
         """
-        help_y = self.screen_height - 80
+        help_y = self.screen_height - 100
 
         controls = ["← → 選擇", "ENTER 確認", "ESC 返回主選單"]
 
@@ -372,7 +372,7 @@ class SelectionUI:
             )
             control_surface = font_manager.render_text(control_text, "small", color)
             control_rect = control_surface.get_rect(
-                center=(self.screen_width // 2, help_y + i * 25)
+                center=(self.screen_width // 2, help_y + i * 20)
             )
             screen.blit(control_surface, control_rect)
 

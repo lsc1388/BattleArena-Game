@@ -198,7 +198,7 @@ class GameUI:
                     f"敵人: {enemy_type_config['emoji']} {enemy_type_config['name']}"
                 )
                 enemy_surface = font_manager.render_text(
-                    enemy_info, "small", COLORS["gray"]
+                    enemy_info, "small", COLORS["white"]
                 )
                 screen.blit(enemy_surface, (level_info_x, enemy_type_y))
         elif "enemy_counts" in level_config:
@@ -214,7 +214,7 @@ class GameUI:
             if parts:
                 enemy_info = "敵人: " + ", ".join(parts)
                 enemy_surface = font_manager.render_text(
-                    enemy_info, "small", COLORS["gray"]
+                    enemy_info, "small", COLORS["white"]
                 )
                 screen.blit(enemy_surface, (level_info_x, enemy_type_y))
 
@@ -316,7 +316,7 @@ class GameUI:
         # 備用彈藥
         total_ammo_y = ammo_y + 20
         total_text = f"備彈: {weapon_info['total_ammo']}"
-        text_surface = self.font_small.render(total_text, True, COLORS["gray"])
+        text_surface = self.font_small.render(total_text, True, COLORS["white"])
         screen.blit(text_surface, (x, total_ammo_y))
 
     def _draw_powerup_effects(self, screen, player):
@@ -416,7 +416,7 @@ class GameUI:
         # 添加技能說明
         skill_desc_y = y + 20
         skill_desc = "Q: 全螢幕攻擊(-10%血量)"
-        desc_surface = self.font_small.render(skill_desc, True, COLORS["gray"])
+        desc_surface = self.font_small.render(skill_desc, True, COLORS["white"])
         screen.blit(desc_surface, (x, skill_desc_y))
 
     def _draw_enemy_health_bars(self, screen, enemies):

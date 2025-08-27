@@ -716,13 +716,13 @@ class BattleArenaGame:
             "遊戲結束後：R重新開始 或 滑鼠右鍵重新開始",
         ]
 
-        start_y = 150
+        start_y = 140
         for i, item in enumerate(menu_items):
             if item:  # 跳過空字串
                 color = COLORS["yellow"] if "按" in item else COLORS["white"]
                 text_surface = font_manager.render_text(item, "small", color)
                 text_rect = text_surface.get_rect(
-                    center=(SCREEN_WIDTH // 2, start_y + i * 20)
+                    center=(SCREEN_WIDTH // 2, start_y + i * 18)
                 )
                 self.screen.blit(text_surface, text_rect)
 
