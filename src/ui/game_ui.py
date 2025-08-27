@@ -45,8 +45,8 @@ class GameUI:
         self.health_bar_size = (200, 20)
         self.weapon_info_pos = (20, 150)  # 相應調整武器資訊位置
         self.powerup_list_pos = (20, 200)  # 相應調整強化效果位置
-        self.score_pos = (screen_width - 150, 20)
-        self.skill_cooldown_pos = (screen_width - 150, 60)
+        self.score_pos = (screen_width - 220, 20)
+        self.skill_cooldown_pos = (screen_width - 220, 60)
 
         # 訊息系統
         self.messages = []

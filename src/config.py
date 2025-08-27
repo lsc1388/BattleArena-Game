@@ -173,7 +173,7 @@ KEYS = {
     "mouse_fire": 1,  # 滑鼠右鍵（pygame.BUTTON_RIGHT）
 }
 
-# 角色設定
+# 角色設定（玩家可選角色）
 CHARACTER_CONFIGS = {
     "cat": {
         "name": "貓",
