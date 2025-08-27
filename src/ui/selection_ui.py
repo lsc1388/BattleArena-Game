@@ -9,13 +9,14 @@ from src.utils.font_manager import font_manager
 
 class SelectionUI:
     """
-    角色和場景選擇界面類別
+    角色、難度和場景選擇界面類別
 
     此類別負責：
     1. 角色選擇界面的繪製和交互
-    2. 場景選擇界面的繪製和交互
-    3. 選擇狀態的管理
-    4. 選擇確認和返回功能
+    2. 難度選擇界面的繪製和交互
+    3. 場景選擇界面的繪製和交互
+    4. 選擇狀態的管理
+    5. 選擇確認和返回功能
     """
 
     def __init__(self, screen_width, screen_height):
@@ -31,15 +32,20 @@ class SelectionUI:
 
         # 選擇狀態
         self.selected_character = None
+        self.selected_difficulty = None
         self.selected_scene = None
-        self.current_selection_type = "character"  # "character" 或 "scene"
+        self.current_selection_type = (
+            "character"  # "character", "difficulty" 或 "scene"
+        )
 
         # 選項配置
         self.character_options = list(CHARACTER_CONFIGS.keys())
+        self.difficulty_options = list(DIFFICULTY_CONFIGS.keys())
         self.scene_options = list(SCENE_CONFIGS.keys())
 
         # 當前選中的索引
         self.character_index = 0
+        self.difficulty_index = 0
         self.scene_index = 0
 
         # 動畫效果
@@ -67,6 +73,10 @@ class SelectionUI:
                     self.character_index = (self.character_index - 1) % len(
                         self.character_options
                     )
+                elif self.current_selection_type == "difficulty":
+                    self.difficulty_index = (self.difficulty_index - 1) % len(
+                        self.difficulty_options
+                    )
                 else:
                     self.scene_index = (self.scene_index - 1) % len(self.scene_options)
                 return {"action": "selection_change"}
@@ -76,6 +86,10 @@ class SelectionUI:
                 if self.current_selection_type == "character":
                     self.character_index = (self.character_index + 1) % len(
                         self.character_options
+                    )
+                elif self.current_selection_type == "difficulty":
+                    self.difficulty_index = (self.difficulty_index + 1) % len(
+                        self.difficulty_options
                     )
                 else:
                     self.scene_index = (self.scene_index + 1) % len(self.scene_options)
@@ -87,9 +101,19 @@ class SelectionUI:
                     self.selected_character = self.character_options[
                         self.character_index
                     ]
-                    self.current_selection_type = "scene"
+                    self.current_selection_type = "difficulty"
                     return {
                         "action": "character_selected",
+                        "character": self.selected_character,
+                    }
+                elif self.current_selection_type == "difficulty":
+                    self.selected_difficulty = self.difficulty_options[
+                        self.difficulty_index
+                    ]
+                    self.current_selection_type = "scene"
+                    return {
+                        "action": "difficulty_selected",
+                        "difficulty": self.selected_difficulty,
                         "character": self.selected_character,
                     }
                 else:
@@ -98,6 +122,7 @@ class SelectionUI:
                         "action": "scene_selected",
                         "scene": self.selected_scene,
                         "character": self.selected_character,
+                        "difficulty": self.selected_difficulty,
                     }
 
         return {"action": "none"}
@@ -183,6 +208,53 @@ class SelectionUI:
         # 操作說明
         self._draw_controls_help(screen, "scene")
 
+    def draw_difficulty_selection(self, screen):
+        """
+        繪製難度選擇界面
+
+        參數:
+        screen: pygame顯示表面
+        """
+        # 背景
+        screen.fill(COLORS["black"])
+
+        # 標題
+        title_surface = font_manager.render_text(
+            "選擇遊戲難度", "large", COLORS["white"]
+        )
+        title_rect = title_surface.get_rect(center=(self.screen_width // 2, 60))
+        screen.blit(title_surface, title_rect)
+
+        # 顯示已選擇的角色
+        if self.selected_character:
+            char_config = CHARACTER_CONFIGS[self.selected_character]
+            char_text = f"已選角色: {char_config['emoji']} {char_config['name']}"
+            char_surface = font_manager.render_text(
+                char_text, "medium", COLORS["yellow"]
+            )
+            char_rect = char_surface.get_rect(center=(self.screen_width // 2, 90))
+            screen.blit(char_surface, char_rect)
+
+        # 難度選項
+        options_start_x = self.screen_width // 2 - 270
+        options_y = 150
+        option_spacing = 180
+
+        for i, difficulty_key in enumerate(self.difficulty_options):
+            difficulty_config = DIFFICULTY_CONFIGS[difficulty_key]
+            x = options_start_x + i * option_spacing
+
+            # 選中效果
+            is_selected = i == self.difficulty_index
+
+            # 繪製難度卡片
+            self._draw_difficulty_card(
+                screen, difficulty_config, x, options_y, is_selected
+            )
+
+        # 操作說明
+        self._draw_controls_help(screen, "difficulty")
+
     def _draw_character_card(self, screen, character_config, x, y, is_selected):
         """
         繪製角色卡片
@@ -194,7 +266,7 @@ class SelectionUI:
         is_selected (bool): 是否被選中
         """
         card_width = 180
-        card_height = 200
+        card_height = 220  # 增加卡片高度以容納所有內容
 
         # 卡片背景
         card_color = COLORS["white"] if is_selected else COLORS["gray"]
@@ -228,19 +300,19 @@ class SelectionUI:
         skill_surface = font_manager.render_text(
             skill_name, "small", COLORS["dark_gray"]
         )
-        skill_rect = skill_surface.get_rect(center=(x + card_width // 2, y + 140))
+        skill_rect = skill_surface.get_rect(center=(x + card_width // 2, y + 130))
         screen.blit(skill_surface, skill_rect)
 
         # 技能描述
         skill_desc = character_config["skill"]["description"]
         desc_surface = font_manager.render_text(skill_desc, "tiny", COLORS["dark_gray"])
-        desc_rect = desc_surface.get_rect(center=(x + card_width // 2, y + 165))
+        desc_rect = desc_surface.get_rect(center=(x + card_width // 2, y + 150))
         screen.blit(desc_surface, desc_rect)
 
         # 技能傷害資訊
         damage_text = f"傷害: {character_config['skill']['damage']}"
         damage_surface = font_manager.render_text(damage_text, "tiny", COLORS["red"])
-        damage_rect = damage_surface.get_rect(center=(x + card_width // 2, y + 160))
+        damage_rect = damage_surface.get_rect(center=(x + card_width // 2, y + 165))
         screen.blit(damage_surface, damage_rect)
 
         # 角色特性資訊
@@ -255,7 +327,7 @@ class SelectionUI:
             trait_text = "均衡型"
 
         trait_surface = font_manager.render_text(trait_text, "tiny", COLORS["blue"])
-        trait_rect = trait_surface.get_rect(center=(x + card_width // 2, y + 175))
+        trait_rect = trait_surface.get_rect(center=(x + card_width // 2, y + 180))
         screen.blit(trait_surface, trait_rect)
 
         # 選中提示
@@ -264,7 +336,7 @@ class SelectionUI:
             select_surface = font_manager.render_text(
                 select_text, "tiny", COLORS["green"]
             )
-            select_rect = select_surface.get_rect(center=(x + card_width // 2, y + 190))
+            select_rect = select_surface.get_rect(center=(x + card_width // 2, y + 200))
             screen.blit(select_surface, select_rect)
 
     def _draw_scene_card(self, screen, scene_config, x, y, is_selected):
@@ -349,25 +421,138 @@ class SelectionUI:
             select_rect = select_surface.get_rect(center=(x + card_width // 2, y + 180))
             screen.blit(select_surface, select_rect)
 
+    def _draw_difficulty_card(self, screen, difficulty_config, x, y, is_selected):
+        """
+        繪製難度卡片
+
+        參數:
+        screen: pygame顯示表面
+        difficulty_config (dict): 難度配置
+        x, y (int): 卡片位置
+        is_selected (bool): 是否被選中
+        """
+        card_width = 160
+        card_height = 200
+
+        # 卡片背景
+        card_color = COLORS["white"] if is_selected else COLORS["gray"]
+
+        # 根據難度決定邊框顏色
+        border_colors = {
+            "easy": (0, 255, 0),  # 綠色
+            "medium": (255, 165, 0),  # 橙色
+            "hard": (255, 0, 0),  # 紅色
+        }
+
+        # 根據難度名稱確定邊框顏色
+        difficulty_key = None
+        for key, config in DIFFICULTY_CONFIGS.items():
+            if config == difficulty_config:
+                difficulty_key = key
+                break
+
+        border_color = border_colors.get(difficulty_key, COLORS["dark_gray"])
+        border_width = 4 if is_selected else 2
+
+        card_rect = pygame.Rect(x, y, card_width, card_height)
+        pygame.draw.rect(screen, card_color, card_rect)
+        pygame.draw.rect(screen, border_color, card_rect, border_width)
+
+        # 難度emoji/圖示
+        emoji_surface = font_manager.render_text(
+            difficulty_config["emoji"], "large", COLORS["black"]
+        )
+        emoji_rect = emoji_surface.get_rect(center=(x + card_width // 2, y + 40))
+        screen.blit(emoji_surface, emoji_rect)
+
+        # 難度名稱
+        name_surface = font_manager.render_text(
+            difficulty_config["name"], "medium", COLORS["black"]
+        )
+        name_rect = name_surface.get_rect(center=(x + card_width // 2, y + 80))
+        screen.blit(name_surface, name_rect)
+
+        # 難度描述
+        desc_surface = font_manager.render_text(
+            difficulty_config["description"], "tiny", COLORS["black"]
+        )
+        # 分行顯示描述文字
+        desc_lines = self._wrap_text(
+            difficulty_config["description"], card_width - 20, "tiny"
+        )
+        for i, line in enumerate(desc_lines):
+            line_surface = font_manager.render_text(line, "tiny", COLORS["black"])
+            line_rect = line_surface.get_rect(
+                center=(x + card_width // 2, y + 110 + i * 15)
+            )
+            screen.blit(line_surface, line_rect)
+
+        # 選中提示
+        if is_selected:
+            select_text = "按 ENTER 確認"
+            select_surface = font_manager.render_text(
+                select_text, "tiny", COLORS["red"]
+            )
+            select_rect = select_surface.get_rect(center=(x + card_width // 2, y + 180))
+            screen.blit(select_surface, select_rect)
+
+    def _wrap_text(self, text, max_width, font_size):
+        """
+        將文字按寬度分行
+
+        參數:
+        text (str): 要分行的文字
+        max_width (int): 最大寬度
+        font_size (str): 字體大小
+
+        回傳:
+        list: 分行後的文字列表
+        """
+        words = text.split()
+        lines = []
+        current_line = ""
+
+        for word in words:
+            test_line = (
+                current_line + word if current_line == "" else current_line + " " + word
+            )
+            test_surface = font_manager.render_text(
+                test_line, font_size, COLORS["black"]
+            )
+
+            if test_surface.get_width() <= max_width:
+                current_line = test_line
+            else:
+                if current_line:
+                    lines.append(current_line)
+                current_line = word
+
+        if current_line:
+            lines.append(current_line)
+
+        return lines
+
     def _draw_controls_help(self, screen, selection_type):
         """
         繪製操作說明
 
         參數:
         screen: pygame顯示表面
-        selection_type (str): 選擇類型 ("character" 或 "scene")
+        selection_type (str): 選擇類型 ("character", "difficulty" 或 "scene")
         """
         help_y = self.screen_height - 100
 
         controls = ["← → 選擇", "ENTER 確認", "ESC 返回主選單"]
 
-        if selection_type == "scene":
-            controls.insert(0, "已選擇角色，現在選擇場景")
+        if selection_type == "difficulty":
+            controls.insert(0, "已選擇角色，現在選擇難度")
+        elif selection_type == "scene":
+            controls.insert(0, "已選擇角色和難度，現在選擇場景")
 
         for i, control_text in enumerate(controls):
             color = (
                 COLORS["yellow"]
-                if i == 0 and selection_type == "scene"
+                if i == 0 and selection_type in ["difficulty", "scene"]
                 else COLORS["white"]
             )
             control_surface = font_manager.render_text(control_text, "small", color)
@@ -381,9 +566,11 @@ class SelectionUI:
         重置選擇狀態，返回角色選擇
         """
         self.selected_character = None
+        self.selected_difficulty = None
         self.selected_scene = None
         self.current_selection_type = "character"
         self.character_index = 0
+        self.difficulty_index = 0
         self.scene_index = 0
 
     def get_selection_info(self):
@@ -391,14 +578,20 @@ class SelectionUI:
         獲取當前選擇資訊
 
         回傳:
-        dict: 包含角色和場景選擇的資訊
+        dict: 包含角色、難度和場景選擇的資訊
         """
         return {
             "character": self.selected_character,
+            "difficulty": self.selected_difficulty,
             "scene": self.selected_scene,
             "character_config": (
                 CHARACTER_CONFIGS.get(self.selected_character)
                 if self.selected_character
+                else None
+            ),
+            "difficulty_config": (
+                DIFFICULTY_CONFIGS.get(self.selected_difficulty)
+                if self.selected_difficulty
                 else None
             ),
             "scene_config": (
@@ -415,5 +608,7 @@ class SelectionUI:
         """
         if self.current_selection_type == "character":
             self.draw_character_selection(screen)
-        else:
+        elif self.current_selection_type == "difficulty":
+            self.draw_difficulty_selection(screen)
+        elif self.current_selection_type == "scene":
             self.draw_scene_selection(screen)

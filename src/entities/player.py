@@ -808,41 +808,6 @@ class Player:
                     screen, effect_color, (player_center_x, player_center_y), 5
                 )
 
-        elif skill_type == "drain":
-            # 生命吸取效果：紫色能量漩渦
-            import math
-
-            player_center_x = self.x + self.width // 2
-            player_center_y = self.y + self.height // 2
-
-            # 畫旋轉的能量漩渦
-            for i in range(6):
-                # 計算螺旋路徑
-                time_factor = pygame.time.get_ticks() / 200
-                angle = (time_factor + i * 60) % 360
-                
-                # 從外圍向中心的螺旋
-                for radius_step in range(10, 60, 8):
-                    spiral_angle = angle + radius_step * 2
-                    radius = 60 - radius_step + math.sin(math.radians(spiral_angle)) * 10
-                    
-                    x = player_center_x + math.cos(math.radians(spiral_angle)) * radius
-                    y = player_center_y + math.sin(math.radians(spiral_angle)) * radius
-                    
-                    # 能量粒子，顏色隨半徑變化
-                    alpha = max(0, 255 - radius_step * 4)
-                    drain_color = tuple(min(255, c + alpha // 3) for c in effect_color)
-                    
-                    # 畫能量點
-                    size = max(2, 6 - radius_step // 10)
-                    pygame.draw.circle(screen, drain_color, (int(x), int(y)), size)
-
-            # 在玩家周圍畫吸取能量的光環
-            for ring_radius in [20, 30, 40]:
-                ring_alpha = (ring_radius - 20) * 8
-                ring_color = tuple(max(0, c - ring_alpha) for c in effect_color)
-                pygame.draw.circle(screen, ring_color, (player_center_x, player_center_y), ring_radius, 2)
-
     def _draw_character_indicator(self, screen):
         """
         在角色上方繪製角色類型指示器

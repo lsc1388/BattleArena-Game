@@ -266,6 +266,14 @@ SCENE_CONFIGS = {
         "effect": "slippery",  # 可能的環境效果
         "description": "寒冷的冰雪世界",
     },
+    "desert": {
+        "name": "沙漠場景",
+        "emoji": "🏜️",
+        "background_color": (238, 203, 173),  # 沙漠色
+        "accent_color": (255, 218, 185),  # 淺沙色
+        "effect": "heat_wave",  # 可能的環境效果
+        "description": "炎熱乾燥的沙漠",
+    },
 }
 
 # AI 對手類型設定
@@ -320,36 +328,116 @@ AI_ENEMY_TYPES = {
 GAME_STATES = {
     "menu": "menu",
     "character_select": "character_select",
+    "difficulty_select": "difficulty_select",  # 新增難度選擇狀態
     "scene_select": "scene_select",
     "playing": "playing",
     "game_over": "game_over",
     "paused": "paused",
 }
 
-# 關卡設定
+# 難度級別設定
+DIFFICULTY_CONFIGS = {
+    "easy": {
+        "name": "簡單",
+        "emoji": "😊",
+        "description": "適合新手玩家，敵人數量較少",
+        "multiplier": 0.7,  # 敵人生命值倍率
+    },
+    "medium": {
+        "name": "中等",
+        "emoji": "😐",
+        "description": "平衡的挑戰難度，適合一般玩家",
+        "multiplier": 1.0,  # 敵人生命值倍率
+    },
+    "hard": {
+        "name": "困難",
+        "emoji": "😤",
+        "description": "高挑戰性，適合經驗豐富的玩家",
+        "multiplier": 1.3,  # 敵人生命值倍率
+    },
+}
+
+# 關卡設定（按難度分級）
 LEVEL_CONFIGS = {
-    1: {
-        "name": "第一關 - 殭屍來襲",
-        # 單一類型關卡也可以用 enemy_counts 結構，方便擴展
-        "enemy_counts": {"zombie": 7},
-        "enemy_count": 7,
-        "description": "擊敗 7 個殭屍",
-        "completion_message": "第一關完成！準備迎接外星人入侵！",
+    "easy": {
+        1: {
+            "name": "第一關 - 殭屍來襲",
+            "enemy_counts": {"zombie": 3},
+            "enemy_count": 3,
+            "scene": "mountain",  # 預設場景
+            "description": "擊敗 3 個殭屍",
+            "completion_message": "第一關完成！準備迎接外星人入侵！",
+        },
+        2: {
+            "name": "第二關 - 外星人入侵",
+            "enemy_counts": {"alien": 5},
+            "enemy_count": 5,
+            "scene": "desert",  # 沙漠背景
+            "description": "擊敗 5 個外星人",
+            "completion_message": "第二關完成！小心混合的敵人與 BOSS！",
+        },
+        3: {
+            "name": "第三關 - 混合來襲與 BOSS",
+            "enemy_counts": {"zombie": 7, "alien": 5},
+            "enemy_count": 12,  # 合計數
+            "scene": "lava",  # 岩漿背景
+            "boss": True,
+            "description": "擊敗 7 個殭屍與 5 個外星人，然後擊敗 BOSS",
+            "completion_message": "已擊敗 BOSS！恭喜完成遊戲！",
+        },
     },
-    2: {
-        "name": "第二關 - 外星人入侵",
-        "enemy_counts": {"alien": 10},
-        "enemy_count": 10,
-        "description": "擊敗 10 個外星人",
-        "completion_message": "第二關完成！小心混合的敵人與 BOSS！",
+    "medium": {
+        1: {
+            "name": "第一關 - 殭屍來襲",
+            "enemy_counts": {"zombie": 5},
+            "enemy_count": 5,
+            "scene": "mountain",  # 預設場景
+            "description": "擊敗 5 個殭屍",
+            "completion_message": "第一關完成！準備迎接外星人入侵！",
+        },
+        2: {
+            "name": "第二關 - 外星人入侵",
+            "enemy_counts": {"alien": 7},
+            "enemy_count": 7,
+            "scene": "desert",  # 沙漠背景
+            "description": "擊敗 7 個外星人",
+            "completion_message": "第二關完成！小心混合的敵人與 BOSS！",
+        },
+        3: {
+            "name": "第三關 - 混合來襲與 BOSS",
+            "enemy_counts": {"zombie": 10, "alien": 7},
+            "enemy_count": 17,  # 合計數
+            "scene": "lava",  # 岩漿背景
+            "boss": True,
+            "description": "擊敗 10 個殭屍與 7 個外星人，然後擊敗 BOSS",
+            "completion_message": "已擊敗 BOSS！恭喜完成遊戲！",
+        },
     },
-    3: {
-        "name": "第三關 - 混合來襲與 BOSS",
-        # 第三關為混合敵人：15 殭屍 + 10 外星人，之後產生一隻 BOSS
-        "enemy_counts": {"zombie": 15, "alien": 10},
-        "enemy_count": 25,  # 合計數
-        "boss": True,
-        "description": "擊敗 15 個殭屍與 10 個外星人，然後擊敗 BOSS",
-        "completion_message": "已擊敗 BOSS！恭喜完成遊戲！",
+    "hard": {
+        1: {
+            "name": "第一關 - 殭屍來襲",
+            "enemy_counts": {"zombie": 7},
+            "enemy_count": 7,
+            "scene": "mountain",  # 預設場景
+            "description": "擊敗 7 個殭屍",
+            "completion_message": "第一關完成！準備迎接外星人入侵！",
+        },
+        2: {
+            "name": "第二關 - 外星人入侵",
+            "enemy_counts": {"alien": 10},
+            "enemy_count": 10,
+            "scene": "desert",  # 沙漠背景
+            "description": "擊敗 10 個外星人",
+            "completion_message": "第二關完成！小心混合的敵人與 BOSS！",
+        },
+        3: {
+            "name": "第三關 - 混合來襲與 BOSS",
+            "enemy_counts": {"zombie": 15, "alien": 10},
+            "enemy_count": 25,  # 合計數
+            "scene": "lava",  # 岩漿背景
+            "boss": True,
+            "description": "擊敗 15 個殭屍與 10 個外星人，然後擊敗 BOSS",
+            "completion_message": "已擊敗 BOSS！恭喜完成遊戲！",
+        },
     },
 }

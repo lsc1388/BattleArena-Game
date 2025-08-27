@@ -52,6 +52,7 @@ class BattleArenaGame:
 
         # 角色和場景選擇
         self.selected_character = "cat"  # 預設角色
+        self.selected_difficulty = "easy"  # 預設難度
         self.selected_scene = "lava"  # 預設場景
 
         # 初始化遊戲系統
@@ -131,8 +132,11 @@ class BattleArenaGame:
         # 重置敵人系統
         self.enemy_spawn_count = 1  # 重置敵人數量
         # 根據 LEVEL_CONFIGS 決定當前關卡的敵人池（可能為混合）
-        level_config = LEVEL_CONFIGS[self.current_level]
+        level_config = LEVEL_CONFIGS[self.selected_difficulty][self.current_level]
         self.current_level_enemy_counts = level_config.get("enemy_counts", {})
+        # 設置關卡場景
+        if "scene" in level_config:
+            self.selected_scene = level_config["scene"]
         self.enemies.clear()
 
         # 創建初始敵人（生成一隻以啟動流程）
@@ -143,7 +147,7 @@ class BattleArenaGame:
         self.powerup_manager.clear_all_powerups()
 
         # 顯示遊戲開始訊息
-        level_config = LEVEL_CONFIGS[self.current_level]
+        level_config = LEVEL_CONFIGS[self.selected_difficulty][self.current_level]
         self.game_ui.add_message(
             f"{level_config['name']}", "achievement", COLORS["green"]
         )
@@ -162,7 +166,7 @@ class BattleArenaGame:
         enemy_y = random.randint(50, 150)
 
         # 根據當前關卡選擇敵人類型（支援混合）
-        level_config = LEVEL_CONFIGS[self.current_level]
+        level_config = LEVEL_CONFIGS[self.selected_difficulty][self.current_level]
         enemy_counts = level_config.get("enemy_counts", {})
 
         # 如果是第三關且已經完成所有普通敵人但還沒生成 BOSS，則生成 BOSS
@@ -214,16 +218,17 @@ class BattleArenaGame:
                 # 處理滑鼠點擊事件
                 self._handle_mouse_click(event.button, event.pos)
 
-            elif event.type == pygame.KEYDOWN:
-                self._handle_keydown(event.key)
-
-            # 處理選擇界面事件
-            if self.game_state in [
+            # 優先處理選擇界面事件
+            elif self.game_state in [
                 GAME_STATES["character_select"],
+                GAME_STATES["difficulty_select"],  # 新增難度選擇狀態
                 GAME_STATES["scene_select"],
             ]:
                 selection_result = self.selection_ui.handle_input(event)
                 self._handle_selection_result(selection_result)
+
+            elif event.type == pygame.KEYDOWN:
+                self._handle_keydown(event.key)
 
         # 處理連續按鍵
         if self.game_state == GAME_STATES["playing"] and self.player:
@@ -282,7 +287,12 @@ class BattleArenaGame:
             self.game_state = GAME_STATES["menu"]
         elif action == "character_selected":
             self.selected_character = result["character"]
+            self.game_state = GAME_STATES["difficulty_select"]  # 改為跳轉到難度選擇
+            self.selection_ui.current_selection_type = "difficulty"  # 設置選擇類型
+        elif action == "difficulty_selected":
+            self.selected_difficulty = result["difficulty"]
             self.game_state = GAME_STATES["scene_select"]
+            self.selection_ui.current_selection_type = "scene"  # 設置選擇類型
         elif action == "scene_selected":
             self.selected_scene = result["scene"]
             self.selected_character = result["character"]
@@ -389,7 +399,9 @@ class BattleArenaGame:
                     )
             elif key == pygame.K_F2:
                 # 標記本關卡已完成（快速跳關）
-                level_config = LEVEL_CONFIGS.get(self.current_level, {})
+                level_config = LEVEL_CONFIGS.get(self.selected_difficulty, {}).get(
+                    self.current_level, {}
+                )
                 self.level_enemies_killed = level_config.get("enemy_count", 0)
                 self.game_ui.add_message(
                     "測試: 本關標記為已完成", "info", COLORS["blue"]
@@ -528,7 +540,7 @@ class BattleArenaGame:
         if not self.game_completed:
             # 檢查是否需要生成新敵人（僅在關卡未完成時）
             current_enemy_count = len([e for e in self.enemies if e.is_alive])
-            level_config = LEVEL_CONFIGS[self.current_level]
+            level_config = LEVEL_CONFIGS[self.selected_difficulty][self.current_level]
             remaining_enemies_needed = (
                 level_config["enemy_count"] - self.level_enemies_killed
             )
@@ -587,7 +599,7 @@ class BattleArenaGame:
         if self.game_completed:
             return
 
-        level_config = LEVEL_CONFIGS[self.current_level]
+        level_config = LEVEL_CONFIGS[self.selected_difficulty][self.current_level]
 
         # 如果關卡有 BOSS，先判斷 BOSS 是否存在且已被擊敗
         if level_config.get("boss", False):
@@ -616,15 +628,20 @@ class BattleArenaGame:
                 COLORS["green"],
             )
 
-            if self.current_level < len(LEVEL_CONFIGS):
+            if self.current_level < len(LEVEL_CONFIGS[self.selected_difficulty]):
                 # 進入下一關
                 self.current_level += 1
                 self.level_enemies_killed = 0
                 # 重新設置敵人池
-                next_level_config = LEVEL_CONFIGS[self.current_level]
+                next_level_config = LEVEL_CONFIGS[self.selected_difficulty][
+                    self.current_level
+                ]
                 self.current_level_enemy_counts = next_level_config.get(
                     "enemy_counts", {}
                 )
+                # 更新場景背景
+                if "scene" in next_level_config:
+                    self.selected_scene = next_level_config["scene"]
                 self.enemies.clear()
 
                 # 顯示新關卡資訊
@@ -788,6 +805,7 @@ class BattleArenaGame:
             self.draw_menu()
         elif self.game_state in [
             GAME_STATES["character_select"],
+            GAME_STATES["difficulty_select"],  # 新增難度選擇狀態
             GAME_STATES["scene_select"],
         ]:
             self.selection_ui.draw(self.screen)
