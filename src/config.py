@@ -178,13 +178,19 @@ CHARACTER_CONFIGS = {
         "name": "貓",
         "emoji": "🐱",
         "color": (255, 165, 0),  # 橙色
+        "attributes": {
+            "attack_power": 1.3,  # 高攻擊力（130%）
+            "fire_rate": 0.7,  # 低射速（70%）
+            "speed": 1.0,  # 正常速度
+            "health": 1.0,  # 正常血量
+        },
         "skill": {
             "name": "雷射技能",
             "type": "laser",
             "description": "發射強力雷射光束",
-            "damage": 300,
+            "damage": 100,
             "effect_color": (255, 255, 0),  # 黃色雷射
-            "cooldown": 30000,  # 30秒
+            "cooldown": 10000,  # 10秒
             "health_cost_percent": 10,
         },
     },
@@ -192,13 +198,19 @@ CHARACTER_CONFIGS = {
         "name": "狗",
         "emoji": "🐶",
         "color": (139, 69, 19),  # 棕色
+        "attributes": {
+            "attack_power": 1.0,  # 平衡攻擊力（100%）
+            "fire_rate": 1.0,  # 平衡射速（100%）
+            "speed": 1.0,  # 平衡速度
+            "health": 1.0,  # 平衡血量
+        },
         "skill": {
             "name": "火焰技能",
             "type": "fire",
             "description": "釋放燃燒火焰",
-            "damage": 250,
+            "damage": 75,
             "effect_color": (255, 69, 0),  # 紅橙色火焰
-            "cooldown": 30000,
+            "cooldown": 10000,
             "health_cost_percent": 10,
         },
     },
@@ -206,13 +218,19 @@ CHARACTER_CONFIGS = {
         "name": "狼",
         "emoji": "🐺",
         "color": (105, 105, 105),  # 灰色
+        "attributes": {
+            "attack_power": 0.8,  # 低攻擊力（80%）
+            "fire_rate": 1.5,  # 高射速（150%）
+            "speed": 1.2,  # 高速度（120%）
+            "health": 0.9,  # 略低血量（90%）
+        },
         "skill": {
             "name": "冰凍技能",
             "type": "ice",
             "description": "冰凍敵人並造成傷害",
-            "damage": 200,
+            "damage": 125,
             "effect_color": (173, 216, 230),  # 淺藍色冰
-            "cooldown": 30000,
+            "cooldown": 10000,
             "health_cost_percent": 10,
         },
     },

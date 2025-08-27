@@ -51,13 +51,15 @@ class Player:
             character_type, CHARACTER_CONFIGS["cat"]
         )
 
-        # 生命值設定
-        self.max_health = max_health
-        self.health = max_health
+        # 生命值設定（應用角色血量倍率）
+        health_multiplier = self.character_config["attributes"]["health"]
+        self.max_health = int(max_health * health_multiplier)
+        self.health = self.max_health
         self.is_alive = True
 
-        # 移動相關
-        self.speed = PLAYER_SPEED
+        # 移動相關（應用角色速度倍率）
+        speed_multiplier = self.character_config["attributes"]["speed"]
+        self.speed = PLAYER_SPEED * speed_multiplier
         self.velocity_x = 0
         self.velocity_y = 0
 
@@ -101,15 +103,14 @@ class Player:
     def handle_input(self, keys, mouse_pos=None, mouse_buttons=None):
         """
         處理玩家輸入控制\n
-        \n
-        支援兩種控制模式：\n
-        1. 滑鼠控制：滑鼠位置控制移動，右鍵射擊\n
-        2. 鍵盤控制：WASD移動，空白鍵射擊\n
+        根據 target.prompt.md 規格：\n
+        - 移動控制：WASD 控制角色位置，滑鼠無法控制移動\n
+        - 射擊準心：滑鼠移動準心，子彈命中位置為準心正中心\n
         \n
         參數:\n
         keys (pygame.key): pygame 按鍵狀態物件\n
-        mouse_pos (tuple): 滑鼠位置座標 (x, y)，可選\n
-        mouse_buttons (tuple): 滑鼠按鍵狀態，可選\n
+        mouse_pos (tuple): 滑鼠位置座標 (x, y)，僅用於準心顯示\n
+        mouse_buttons (tuple): 滑鼠按鍵狀態，暫時保留但不用於移動控制\n
         """
         # 記錄當前按下的按鍵
         self.keys_pressed.clear()
@@ -118,12 +119,8 @@ class Player:
         self.velocity_x = 0
         self.velocity_y = 0
 
-        # 滑鼠控制模式（優先使用滑鼠控制）
-        if mouse_pos is not None:
-            self._handle_mouse_movement(mouse_pos)
-        else:
-            # 鍵盤控制模式（WASD）
-            self._handle_keyboard_movement(keys)
+        # 只使用鍵盤控制移動（WASD）
+        self._handle_keyboard_movement(keys)
 
     def _handle_mouse_movement(self, mouse_pos):
         """
@@ -301,7 +298,7 @@ class Player:
         條件：\n
         - 有子彈\n
         - 沒有在填裝\n
-        - 射擊冷卻時間已過\n
+        - 射擊冷卻時間已過（應用角色射速倍率）\n
         \n
         回傳:\n
         bool: 是否可以射擊\n
@@ -313,11 +310,15 @@ class Player:
         if weapon_state["current_ammo"] <= 0:
             return False
 
-        # 檢查射擊冷卻時間
+        # 檢查射擊冷卻時間（應用角色射速倍率）
         current_time = pygame.time.get_ticks()
         weapon_config = WEAPON_CONFIGS[self.current_weapon]
 
-        if current_time - self.last_shot_time < weapon_config["fire_rate"]:
+        # 角色射速倍率影響射擊間隔（射速高則間隔短）
+        fire_rate_multiplier = self.character_config["attributes"]["fire_rate"]
+        adjusted_fire_rate = weapon_config["fire_rate"] / fire_rate_multiplier
+
+        if current_time - self.last_shot_time < adjusted_fire_rate:
             return False
 
         return True
@@ -361,9 +362,12 @@ class Player:
             # 預設向上射擊
             base_angle = 0
 
-        # 準備射擊資料
+        # 準備射擊資料（應用角色攻擊力倍率）
+        attack_power_multiplier = self.character_config["attributes"]["attack_power"]
+        base_damage = weapon_config["damage"] * attack_power_multiplier
+
         shot_data = {
-            "damage": weapon_config["damage"],
+            "damage": base_damage,
             "speed": weapon_config["bullet_speed"],
             "bullets": [],
         }
@@ -400,7 +404,7 @@ class Player:
                 "x": self.x + self.width / 2,
                 "y": self.y,
                 "angle": angle,
-                "damage": weapon_config["damage"] * damage_multiplier,
+                "damage": base_damage * damage_multiplier,
                 "speed": weapon_config["bullet_speed"],
             }
             shot_data["bullets"].append(bullet_info)

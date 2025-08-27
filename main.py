@@ -180,6 +180,9 @@ class BattleArenaGame:
     def _handle_mouse_click(self, button, pos):
         """
         處理滑鼠點擊事件
+        根據 target.prompt.md 規格：
+        - 射擊控制：滑鼠左鍵發射子彈
+        - 重新開始：滑鼠右鍵重新開始遊戲
 
         參數:
         button (int): 滑鼠按鈕（1=左鍵, 3=右鍵）
@@ -187,7 +190,7 @@ class BattleArenaGame:
         """
         if self.game_state == GAME_STATES["playing"] and self.player:
             if button == 1:  # 滑鼠左鍵 - 射擊
-                # 朝滑鼠位置射擊
+                # 朝滑鼠位置射擊（準心正中心）
                 shot_data = self.player.shoot(target_pos=pos)
                 if shot_data:
                     # 發射子彈
@@ -201,10 +204,18 @@ class BattleArenaGame:
                             "player",
                         )
                     self.game_stats["shots_fired"] += len(shot_data["bullets"])
+            elif button == 3:  # 滑鼠右鍵 - 重新開始遊戲
+                self.start_new_game()
 
         elif self.game_state == GAME_STATES["game_over"]:
             if button == 3:  # 滑鼠右鍵 - 重新開始遊戲
                 self.start_new_game()
+        elif self.game_state == GAME_STATES["menu"]:
+            if button == 3:  # 選單中也可以右鍵重啟（清除設定）
+                self.player_max_health = PLAYER_DEFAULT_HEALTH
+                self.enemy_difficulty = "medium"
+                self.selected_character = "cat"
+                self.selected_scene = "lava"
 
     def _handle_selection_result(self, result):
         """
@@ -331,20 +342,22 @@ class BattleArenaGame:
 
     def _handle_continuous_input(self):
         """
-        處理需要連續檢測的輸入（如移動和射擊）\n
+        處理需要連續檢測的輸入（WASD移動，滑鼠準心）\n
+        根據 target.prompt.md 規格：\n
+        - 移動控制：WASD 控制角色位置，滑鼠無法控制移動\n
+        - 射擊準心：滑鼠移動準心，子彈命中位置為準心正中心\n
         """
         keys = pygame.key.get_pressed()
         mouse_pos = pygame.mouse.get_pos()
+
+        # 只使用鍵盤控制移動，不傳入滑鼠位置進行移動控制
+        self.player.handle_input(keys, mouse_pos=None, mouse_buttons=None)
+
+        # 處理滑鼠射擊（左鍵連續按住時持續射擊）
         mouse_buttons = pygame.mouse.get_pressed()
-
-        # 處理移動（滑鼠優先，如果沒有滑鼠移動則使用鍵盤）
-        self.player.handle_input(keys, mouse_pos, mouse_buttons)
-
-        # 處理射擊（只支援鍵盤空白鍵，滑鼠射擊改用點擊事件處理）
-        should_shoot = keys[KEYS["fire"]]  # 只保留空白鍵射擊
-
-        if should_shoot:
-            shot_data = self.player.shoot()  # 鍵盤射擊不指定目標位置，向上射擊
+        if mouse_buttons[0]:  # 滑鼠左鍵
+            # 朝準心位置射擊
+            shot_data = self.player.shoot(target_pos=mouse_pos)
             if shot_data:
                 # 發射子彈
                 for bullet_info in shot_data["bullets"]:
@@ -511,7 +524,7 @@ class BattleArenaGame:
             "或使用 WASD - 移動，空白鍵 - 射擊",
             "R - 填裝",
             "1/2/3/4/5 - 切換武器",
-            "Q - 使用角色技能（消耗10%生命值，冷卻30秒）",
+            "Q - 使用角色技能（消耗10%生命值，冷卻10秒）",
             "ESC - 返回選單",
             "遊戲結束後：R重新開始 或 滑鼠右鍵重新開始",
         ]

@@ -1,204 +1,136 @@
-# BattleArena Game - AI Coding Instructions
+<!-- BattleArena Game — AI Coding Agent Guide -->
 
-## Architecture Overview
+Essential knowledge for AI coding agents to be immediately productive in this codebase. Focuses on architecture patterns, critical integration points, and project-specific conventions.
 
-This is a **pygame-based 2D shooting game** with a clean modular architecture. The codebase follows strict Chinese development conventions and uses a **manager-pattern** for game systems.
+## 🏗️ Architecture Overview
 
-### Key Components
+**Project**: Pygame 2D shooting game with character selection, multiple weapons, and AI opponents.
 
-- **`main.py`**: Single-class game orchestrator (`BattleArenaGame`) managing all subsystems
-- **`src/config.py`**: Centralized configuration hub - modify this for game balance changes
-- **`src/entities/`**: Player, Enemy, Bullet, PowerUp classes with state management
-- **`src/systems/`**: CollisionSystem handles all physics interactions
-- **`src/ui/`**: GameUI manages HUD, menus, and message overlays
-- **`src/utils/`**: FontManager singleton for Chinese font handling
+**Entry Point**: `main.py` → `BattleArenaGame` class manages game loop and state machine:
 
-### System Interactions
+- State flow: menu → character_select → scene_select → playing → game_over
+- Core pattern: Event handling → Update logic → Render → Repeat at 60 FPS
 
-- **State Flow**: `main.py` orchestrates → entities update → collision system processes → UI renders
-- **Manager Pattern**: `BulletManager`, `PowerUpManager` handle object pools and lifecycle
-- **Configuration-Driven**: All game mechanics defined in `WEAPON_CONFIGS`, `AI_CONFIGS`, `POWERUP_EFFECTS`
-- **Chinese Localization**: FontManager singleton (`font_manager`) handles font detection and caching
-- **Mouse + Keyboard Control**: Dual input system with mouse position movement and mouse clicking for shooting
+**Module Structure**:
 
-## Critical Development Patterns
+- `src/entities/`: Game objects (Player, Enemy, Bullet, PowerUp) - each implements `update()`, `get_rect()`, `draw()`, `is_alive`
+- `src/systems/`: Service boundaries (CollisionSystem centralizes all collision detection)
+- `src/ui/`: Interface layers (GameUI, SelectionUI) with Chinese font support via font_manager
+- `src/utils/`: Shared utilities (FontManager singleton for Chinese text rendering)
+- `src/config.py`: **All configuration data** - never hardcode game values
 
-### Code Style Requirements ⚠️
+## 🔒 Critical Integration Points (DO NOT MODIFY ARBITRARILY)
 
-```python
-# ✅ ALWAYS use these patterns
-######################區塊註解######################  # Block separators
-def method_name(self):  # snake_case for functions/variables
-    """
-    完整的繁體中文文檔字串\n  # Documentation with \n breaks
-    """
-    # 每行重要邏輯都要有繁體中文註解說明在做什麼
-```
-
-**Critical Naming Convention**:
-
-- Variables: `snake_case` (e.g., `enemy_spawn_count`, `current_weapon`)
-- Classes: `PascalCase` (e.g., `BattleArenaGame`, `CollisionSystem`)
-- Constants: `SCREAMING_SNAKE_CASE` (e.g., `SCREEN_WIDTH`, `PLAYER_SIZE`)
-
-### Event-Driven Input Architecture
-
-**Dual Input System**: The game uses both event-based and continuous input:
-
-- **Event-based**: `_handle_mouse_click()`, `_handle_keydown()` for discrete actions
-- **Continuous**: `_handle_continuous_input()` for movement and sustained actions
-- **Mouse Control**: Player moves toward mouse position, shoots at mouse click location
-
-```python
-# ✅ Input handling pattern
-def handle_events(self):
-    for event in pygame.event.get():
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            self._handle_mouse_click(event.button, event.pos)
-        elif event.type == pygame.KEYDOWN:
-            self._handle_keydown(event.key)
-
-def _handle_continuous_input(self):
-    keys = pygame.key.get_pressed()
-    mouse_pos = pygame.mouse.get_pos()
-    self.player.handle_input(keys, mouse_pos, mouse_buttons)
-```
-
-### Manager Pattern Architecture
-
-**Critical**: All game objects use manager classes for lifecycle and pooling:
-
-- **BulletManager**: `create_bullet()`, `update()`, `check_collision_with_single_target()`
-- **PowerUpManager**: `spawn_powerup_on_enemy_death()`, `check_player_pickups()`
-- **FontManager**: Singleton `font_manager.render_text()` - never create fonts directly
-
-### Entity State Management
-
-All entities follow this pattern:
-
-- **Health/Alive tracking**: `self.health`, `self.is_alive`
-- **Position system**: `self.x`, `self.y` with `update(screen_width, screen_height)`
-- **Collision interface**: `get_rect()` method for pygame.Rect
-- **Drawing method**: `draw(screen)` with state-based colors
-
-### Configuration-Driven Development
-
-**Essential workflow**: All game mechanics come from `src/config.py` dictionaries:
-
-```python
-# Game balance in config.py - modify these, not hardcoded values
-WEAPON_CONFIGS = {
-    "pistol": {"max_ammo": 12, "fire_rate": 300, "damage": 25},
-    # Each weapon has ammo, reload, fire rate, damage, speed
-}
-
-# Usage in entities:
-weapon_config = WEAPON_CONFIGS[self.current_weapon]  # ✅ Always use config
-damage = weapon_config["damage"]  # ✅ Not hardcoded values
-```
-
-### Game State Architecture
-
-**State machine**: `GAME_STATES["menu" | "character_select" | "scene_select" | "playing" | "game_over"]`
-
-- Each state has dedicated input handling and rendering methods in `BattleArenaGame`
-- Character/scene selection flow: menu → character_select → scene_select → playing
-- UI handled by `SelectionUI` for selection states, `GameUI` for game states
-
-### Chinese Font System (Critical)
-
-**Always use the singleton `font_manager`**:
+**Font Management**: Always use `font_manager.render_text(text, size, color)` or `font_manager.get_font(size)`:
 
 ```python
 from src.utils.font_manager import font_manager
-text_surface = font_manager.render_text("文字", "medium", COLORS["white"])
-# ❌ Never: pygame.font.Font() or pygame.font.SysFont() directly
+surface = font_manager.render_text("遊戲文字", "medium", COLORS["white"])
 ```
 
-- **Auto-detection**: Tries `"Microsoft JhengHei"`, `"Microsoft YaHei"`, fallbacks to system
-- **Cached fonts**: Pre-loaded sizes ("large", "medium", "small", "tiny")
-- **Graceful degradation**: Falls back to system fonts if Chinese fonts unavailable
-
-## Essential Workflows
-
-### Adding New Weapons
-
-1. Define in `WEAPON_CONFIGS` (config.py) with all required properties
-2. Add key binding in `KEYS` config if needed
-3. Implement switch logic in `Player.handle_weapon_switch()`
-4. Test ammo management and fire rate with new weapon config
-
-### Adding New Character Types
-
-1. Define in `CHARACTER_CONFIGS` with skill configuration
-2. Update `SelectionUI` character selection if needed
-3. Implement skill logic in `Player.use_skill()` method
-4. Test skill cooldown, health cost, and damage effects
-
-### Modifying AI Behavior
-
-- **Configuration**: Change `AI_CONFIGS` for difficulty balancing
-- **Movement patterns**: Modify `Enemy.update()` - pattern types: "simple", "tactical", "advanced"
-- **Enemy types**: Add to `AI_ENEMY_TYPES` with health/speed/accuracy modifiers
-- **Shooting logic**: Adjust accuracy and fire_rate in config
-
-### Adding PowerUp Effects
-
-1. Define effect in `POWERUP_EFFECTS` config with duration/instant properties
-2. Implement pickup logic in `PowerUp.apply_effect()`
-3. Handle duration tracking in `Player.update_powerups()`
-4. Add visual effects in `PowerUp.draw()` method
-
-### Performance Optimization
-
-- **Font caching**: `FontManager` pre-loads fonts - don't create new fonts each frame
-- **Collision batching**: `CollisionSystem.check_all_collisions()` processes all interactions once
-- **Entity pooling**: Consider reusing bullet objects for better performance
-- **Manager cleanup**: Use `clear_all_bullets()`, `clear_all_powerups()` for memory management
-
-### Chinese Font Handling
-
-**Critical**: Use the `font_manager` singleton, never create fonts directly:
+**Collision System**: All interactions handled by `CollisionSystem.check_all_collisions()`. Never implement custom collision loops:
 
 ```python
-from src.utils.font_manager import font_manager
-text_surface = font_manager.render_text("文字", "medium", COLORS["white"])
+collision_results = self.collision_system.check_all_collisions(
+    self.player, self.enemies, self.bullet_manager, self.powerup_manager
+)
 ```
 
-## Common Pitfalls & Solutions
+**Configuration-Driven Design**: All balance values live in `src/config.py`:
 
-### Configuration Changes
+- `WEAPON_CONFIGS`: damage, ammo, reload times, special properties
+- `CHARACTER_CONFIGS`: skills, colors, cooldowns
+- `AI_CONFIGS`: difficulty levels, accuracy, behavior patterns
+- `POWERUP_EFFECTS`: duration, multipliers, instant effects
 
-❌ **Don't** hardcode values - always use config.py constants  
-✅ **Do** modify `WEAPON_CONFIGS`, `PLAYER_SPEED`, etc. in config.py
+## 🎯 Entity System Patterns
 
-### Entity Lifecycle
+**Standard Entity Interface**:
 
-❌ **Don't** forget `is_alive` checks before processing entities  
-✅ **Do** use `for entity in entities[:]` pattern when removing during iteration
+```python
+def update(self, screen_width, screen_height):
+    # Position updates and boundary checks
 
-### Input Handling
+def get_rect(self):
+    return pygame.Rect(self.x, self.y, self.width, self.height)
 
-❌ **Don't** mix event-based and continuous input types  
-✅ **Do** use `handle_events()` for key presses, `_handle_continuous_input()` for WASD/shooting
+def draw(self, screen):
+    # Render entity with character-specific colors/emojis
 
-### Collision Detection
-
-❌ **Don't** implement custom collision logic  
-✅ **Do** extend `CollisionSystem` methods - it handles all edge cases
-
-## File Navigation Guide
-
-- **Game mechanics**: Start with `src/entities/player.py` for combat system understanding
-- **AI behavior**: Check `src/entities/enemy.py` movement patterns and difficulty configs
-- **Performance tuning**: Examine `CollisionSystem` and `BulletManager` for optimization points
-- **UI changes**: Modify `GameUI` class - handles all HUD elements and game states
-- **Balance changes**: `src/config.py` contains all gameplay constants
-
-## Running & Testing
-
-```bash
-python main.py  # No __main__ guard needed - direct execution
+# Health management
+self.health = initial_value
+self.is_alive = self.health > 0
 ```
 
-**Debug tools**: Enable collision event logging in `CollisionSystem.get_collision_events()`
+**Safe Entity Removal Pattern**:
+
+```python
+for entity in entities[:]:  # Create copy for safe iteration
+    if not entity.is_alive:
+        entities.remove(entity)
+```
+
+## 🕹️ Input System Architecture
+
+**Mouse Controls** (per CROSSHAIR_SYSTEM.md):
+
+- Left click: Shoot at crosshair position (precise targeting)
+- Right click: Restart game
+- Mouse movement: Updates crosshair position only (NO character movement)
+
+**Keyboard Controls**:
+
+- WASD: Character movement (only method for player positioning)
+- 1-5: Weapon switching
+- Q: Character special skill (30s cooldown, 10% health cost)
+- R: Manual reload
+- C: Toggle crosshair display
+
+## 🎨 UI System Conventions
+
+**Chinese Text Support**: All UI text in Traditional Chinese with proper font fallbacks
+**Message System**: `game_ui.add_message(text, type, color)` for temporary notifications
+**Health Display**: Toggle between bar/number modes via H key in menu
+**Crosshair**: Smart color-coding (white→orange→red→yellow) based on ammo status
+
+## ⚙️ Common Development Workflows
+
+**Adding New Weapon**:
+
+1. Define in `WEAPON_CONFIGS` with damage, ammo, fire_rate, special properties
+2. Update `Player.handle_weapon_switch()` for key binding
+3. Test ammo consumption and reload mechanics
+
+**Adding New Enemy Type**:
+
+1. Add to `AI_ENEMY_TYPES` with health, speed, accuracy modifiers
+2. Update enemy spawn logic in `BattleArenaGame._spawn_enemy()`
+3. Ensure proper behavior in `Enemy.update()` method
+
+**Adding New PowerUp**:
+
+1. Define in `POWERUP_EFFECTS` with duration/instant properties
+2. Implement in `PowerUp.apply_effect()` and `Player.update_powerups()`
+3. Add spawn chance in `PowerUpManager.spawn_powerup_on_enemy_death()`
+
+## 🐛 Development & Debugging
+
+**Run Game**: `python main.py` (no `if __name__ == "__main__"` needed)
+
+**Collision Debugging**: Enable event logging in `CollisionSystem.get_collision_events()`
+
+**Performance**: Font manager caches fonts; collision system batches checks; entity managers handle cleanup
+
+## 📋 Code Style Requirements
+
+- **Naming**: snake_case (variables/functions), PascalCase (classes), SCREAMING_SNAKE_CASE (constants)
+- **Comments**: Traditional Chinese docstrings for public methods; inline comments explaining complex logic
+- **Modules**: Use clear block separators `######################載入套件######################`
+- **Error Handling**: Graceful fallbacks (e.g., font loading failures, missing config keys)
+
+## 🚀 Quick Reference Examples
+
+**Config Access**: `weapon_data = WEAPON_CONFIGS[self.current_weapon]`
+**Message Display**: `self.game_ui.add_message("彈藥不足", "warning", COLORS["yellow"])`
+**Character Skills**: Defined in `CHARACTER_CONFIGS[type]["skill"]` with damage, cooldown, effect_color
+**Scene Backgrounds**: `SCENE_CONFIGS[scene]["background_color"]` for environment customization

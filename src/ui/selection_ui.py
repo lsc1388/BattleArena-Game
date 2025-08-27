@@ -243,13 +243,28 @@ class SelectionUI:
         damage_rect = damage_surface.get_rect(center=(x + card_width // 2, y + 190))
         screen.blit(damage_surface, damage_rect)
 
+        # 角色特性資訊
+        attributes = character_config["attributes"]
+        if character_config["name"] == "貓":
+            trait_text = "高攻擊 / 低射速"
+        elif character_config["name"] == "狗":
+            trait_text = "平衡型角色"
+        elif character_config["name"] == "狼":
+            trait_text = "高射速 / 低攻擊"
+        else:
+            trait_text = "均衡型"
+
+        trait_surface = font_manager.render_text(trait_text, "tiny", COLORS["blue"])
+        trait_rect = trait_surface.get_rect(center=(x + card_width // 2, y + 205))
+        screen.blit(trait_surface, trait_rect)
+
         # 選中提示
         if is_selected:
             select_text = "按 ENTER 選擇"
             select_surface = font_manager.render_text(
-                select_text, "tiny", COLORS["blue"]
+                select_text, "tiny", COLORS["green"]
             )
-            select_rect = select_surface.get_rect(center=(x + card_width // 2, y + 215))
+            select_rect = select_surface.get_rect(center=(x + card_width // 2, y + 225))
             screen.blit(select_surface, select_rect)
 
     def _draw_scene_card(self, screen, scene_config, x, y, is_selected):
