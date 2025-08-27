@@ -314,6 +314,13 @@ class BattleArenaGame:
                         self.game_ui.add_message(
                             skill_result["reason"], "info", COLORS["yellow"]
                         )
+            elif key == pygame.K_c:
+                # 切換準心顯示
+                self.game_ui.crosshair_enabled = not self.game_ui.crosshair_enabled
+                if self.game_ui.crosshair_enabled:
+                    self.game_ui.add_message("準心已開啟", "info", COLORS["green"])
+                else:
+                    self.game_ui.add_message("準心已關閉", "info", COLORS["orange"])
 
         elif self.game_state == GAME_STATES["game_over"]:
             # 遊戲結束狀態的按鍵處理

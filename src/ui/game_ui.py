@@ -54,12 +54,19 @@ class GameUI:
 
         # 血量顯示模式（血條或數字）
         self.health_display_mode = "bar"  # 'bar' 或 'number'
-        
+
         # 準心系統設定
         self.crosshair_enabled = True
-        self.crosshair_size = 15
+        self.crosshair_size = 45  # 放大3倍：15 * 3 = 45
         self.crosshair_thickness = 2
         self.crosshair_gap = 5
+        # 準心顏色配置 - 根據不同狀態變色
+        self.crosshair_colors = {
+            "normal": COLORS["white"],  # 正常狀態 - 白色
+            "reloading": COLORS["yellow"],  # 重裝彈時 - 黃色
+            "low_ammo": COLORS["orange"],  # 子彈不足 - 橘色
+            "no_ammo": COLORS["red"],  # 沒有子彈 - 紅色
+        }
 
     def update(self):
         """
@@ -109,7 +116,7 @@ class GameUI:
         self._draw_messages(screen)
 
         # 繪製滑鼠準心
-        self._draw_crosshair(screen)
+        self._draw_crosshair(screen, player)
 
         # 繪製小地圖（可選）
         self._draw_minimap(screen, player, enemies)
@@ -355,7 +362,7 @@ class GameUI:
                     screen, health_color, (bar_x, bar_y, health_width, bar_height)
                 )
 
-    def _draw_crosshair(self, screen):
+    def _draw_crosshair(self, screen, player):
         """
         繪製滑鼠準心 - 提供精確瞄準的視覺回饋\n
         \n
@@ -366,60 +373,89 @@ class GameUI:
         \n
         參數:\n
         screen (pygame.Surface): 遊戲畫面物件\n
+        player (Player): 玩家物件，用於判斷準心顏色狀態\n
         """
         if not self.crosshair_enabled:
             return
-        
+
         # 取得滑鼠位置
         mouse_x, mouse_y = pygame.mouse.get_pos()
-        
-        # 設定準心顏色 - 可以根據玩家狀態調整
-        crosshair_color = COLORS["white"]  # 預設白色
-        
+
+        # 根據玩家狀態決定準心顏色
+        crosshair_color = self._get_crosshair_color(player)
+
         # 計算準心的線條位置
         half_size = self.crosshair_size // 2
         gap = self.crosshair_gap
         thickness = self.crosshair_thickness
-        
+
         # 繪製水平線條（左右兩段）
         # 左邊線條
         pygame.draw.rect(
-            screen, 
+            screen,
             crosshair_color,
-            (mouse_x - half_size, mouse_y - thickness // 2, 
-             half_size - gap, thickness)
+            (mouse_x - half_size, mouse_y - thickness // 2, half_size - gap, thickness),
         )
         # 右邊線條
         pygame.draw.rect(
-            screen, 
+            screen,
             crosshair_color,
-            (mouse_x + gap, mouse_y - thickness // 2, 
-             half_size - gap, thickness)
+            (mouse_x + gap, mouse_y - thickness // 2, half_size - gap, thickness),
         )
-        
+
         # 繪製垂直線條（上下兩段）
         # 上邊線條
         pygame.draw.rect(
-            screen, 
+            screen,
             crosshair_color,
-            (mouse_x - thickness // 2, mouse_y - half_size, 
-             thickness, half_size - gap)
+            (mouse_x - thickness // 2, mouse_y - half_size, thickness, half_size - gap),
         )
         # 下邊線條
         pygame.draw.rect(
-            screen, 
+            screen,
             crosshair_color,
-            (mouse_x - thickness // 2, mouse_y + gap, 
-             thickness, half_size - gap)
+            (mouse_x - thickness // 2, mouse_y + gap, thickness, half_size - gap),
         )
-        
+
         # 在準心中央加上一個小點作為精確瞄準點
-        pygame.draw.circle(
-            screen, 
-            crosshair_color, 
-            (mouse_x, mouse_y), 
-            1  # 小點半徑
-        )
+        pygame.draw.circle(screen, crosshair_color, (mouse_x, mouse_y), 1)  # 小點半徑
+
+    def _get_crosshair_color(self, player):
+        """
+        根據玩家狀態決定準心顏色\n
+        \n
+        準心顏色規則：\n
+        - 紅色：沒有子彈\n
+        - 橘色：子彈不足（剩餘 < 25%）\n
+        - 黃色：正在重裝彈\n
+        - 白色：正常狀態\n
+        \n
+        參數:\n
+        player (Player): 玩家物件\n
+        \n
+        回傳:\n
+        tuple: RGB顏色值\n
+        """
+        # 取得目前武器配置和子彈狀態
+        weapon_config = WEAPON_CONFIGS.get(player.current_weapon, {})
+        max_ammo = weapon_config.get("max_ammo", 30)
+
+        # 取得當前武器的子彈數量
+        current_ammo = 0
+        if player.current_weapon in player.weapons:
+            current_ammo = player.weapons[player.current_weapon].get("current_ammo", 0)
+
+        # 檢查重裝彈狀態
+        if hasattr(player, "is_reloading") and player.is_reloading:
+            return self.crosshair_colors["reloading"]
+
+        # 檢查子彈狀態
+        if current_ammo <= 0:
+            return self.crosshair_colors["no_ammo"]
+        elif current_ammo < max_ammo * 0.25:  # 子彈少於25%
+            return self.crosshair_colors["low_ammo"]
+        else:
+            return self.crosshair_colors["normal"]
 
     def _draw_messages(self, screen):
         """
