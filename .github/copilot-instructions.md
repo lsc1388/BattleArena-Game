@@ -35,7 +35,8 @@ def method_name(self):  # snake_case for functions/variables
     # 每行重要邏輯都要有繁體中文註解說明在做什麼
 ```
 
-**Critical Naming Convention**: 
+**Critical Naming Convention**:
+
 - Variables: `snake_case` (e.g., `enemy_spawn_count`, `current_weapon`)
 - Classes: `PascalCase` (e.g., `BattleArenaGame`, `CollisionSystem`)
 - Constants: `SCREAMING_SNAKE_CASE` (e.g., `SCREEN_WIDTH`, `PLAYER_SIZE`)
@@ -43,6 +44,7 @@ def method_name(self):  # snake_case for functions/variables
 ### Event-Driven Input Architecture
 
 **Dual Input System**: The game uses both event-based and continuous input:
+
 - **Event-based**: `_handle_mouse_click()`, `_handle_keydown()` for discrete actions
 - **Continuous**: `_handle_continuous_input()` for movement and sustained actions
 - **Mouse Control**: Player moves toward mouse position, shoots at mouse click location
