@@ -49,12 +49,6 @@ class BattleArenaGame:
         self.enemy_difficulty = "medium"
         self.health_display_mode = "number"  # 預設使用數字顯示
 
-        # 遊戲選擇狀態
-        self.selected_character = "cat"  # 預設角色
-        self.selected_scene = "mountain"  # 預設場景
-        self.character_menu_index = 0  # 角色選單索引
-        self.scene_menu_index = 0  # 場景選單索引
-
         # 初始化遊戲系統
         self._init_game_systems()
 
@@ -106,20 +100,12 @@ class BattleArenaGame:
         }
         self.game_start_time = pygame.time.get_ticks()
 
-        # 創建玩家（使用選擇的角色）
+        # 創建玩家
         player_start_x = SCREEN_WIDTH // 2 - PLAYER_SIZE // 2
         player_start_y = SCREEN_HEIGHT - 100
-        self.player = Player(
-            player_start_x, 
-            player_start_y, 
-            self.player_max_health, 
-            character_type=self.selected_character
-        )
+        self.player = Player(player_start_x, player_start_y, self.player_max_health)
 
-        # 應用場景效果
-        self._apply_scene_effects()
-
-        # 創建初始敵人（使用隨機敵人類型）
+        # 創建初始敵人
         self._spawn_enemy()
 
         # 清空所有管理系統
@@ -127,29 +113,7 @@ class BattleArenaGame:
         self.powerup_manager.clear_all_powerups()
 
         # 顯示遊戲開始訊息
-        character_name = CHARACTER_TYPES[self.selected_character]["name"]
-        scene_name = SCENE_CONFIGS[self.selected_scene]["name"]
-        self.game_ui.add_message(f"角色: {character_name} | 場景: {scene_name}", "achievement", COLORS["green"])
-        self.game_ui.add_message("遊戲開始！", "achievement", COLORS["yellow"])
-
-    def _apply_scene_effects(self):
-        """
-        應用場景特殊效果\n
-        """
-        scene_config = SCENE_CONFIGS[self.selected_scene]
-        
-        # 根據場景調整玩家屬性
-        if self.selected_scene == "lava":
-            # 岩漿場景：火焰傷害加成
-            if hasattr(self.player, 'powerups'):
-                self.player.powerups["fire_boost"] = {
-                    "remaining_time": float('inf'),  # 永久效果
-                    "source": "scene_effect"
-                }
-        elif self.selected_scene == "ice":
-            # 冰場景：移動速度減少
-            if hasattr(self.player, 'speed'):
-                self.player.speed *= 0.85  # 減少15%移動速度
+        self.game_ui.add_message("遊戲開始！", "achievement", COLORS["green"])
 
     def _spawn_enemy(self):
         """
@@ -161,12 +125,8 @@ class BattleArenaGame:
         enemy_x = random.randint(50, SCREEN_WIDTH - ENEMY_SIZE - 50)
         enemy_y = random.randint(50, 150)
 
-        # 隨機選擇敵人類型
-        enemy_types = list(ENEMY_TYPES.keys())
-        enemy_type = random.choice(enemy_types)
-
-        # 創建敵人（使用類型和難度）
-        enemy = Enemy(enemy_x, enemy_y, self.enemy_difficulty, enemy_type=enemy_type)
+        # 創建敵人
+        enemy = Enemy(enemy_x, enemy_y, self.enemy_difficulty)
         self.enemies.append(enemy)
 
     def handle_events(self):
@@ -194,106 +154,88 @@ class BattleArenaGame:
         key: 按下的按鍵\n
         """
         if self.game_state == GAME_STATES["menu"]:
-            self._handle_menu_keydown(key)
-        elif self.game_state == GAME_STATES["character_select"]:
-            self._handle_character_select_keydown(key)
-        elif self.game_state == GAME_STATES["scene_select"]:
-            self._handle_scene_select_keydown(key)
+            # 選單狀態的按鍵處理
+            if key == pygame.K_SPACE:
+                self.start_new_game()
+            elif key == pygame.K_1:
+                self.enemy_difficulty = "weak"
+            elif key == pygame.K_2:
+                self.enemy_difficulty = "medium"
+            elif key == pygame.K_3:
+                self.enemy_difficulty = "strong"
+            elif key == pygame.K_h:
+                # 切換血量顯示模式
+                if self.health_display_mode == "bar":
+                    self.health_display_mode = "number"
+                else:
+                    self.health_display_mode = "bar"
+                self.game_ui.set_health_display_mode(self.health_display_mode)
+            elif key == pygame.K_PLUS or key == pygame.K_EQUALS:
+                # 增加玩家血量
+                self.player_max_health = min(200, self.player_max_health + 10)
+            elif key == pygame.K_MINUS:
+                # 減少玩家血量
+                self.player_max_health = max(50, self.player_max_health - 10)
+
         elif self.game_state == GAME_STATES["playing"]:
-            self._handle_playing_keydown(key)
+            # 遊戲中的按鍵處理
+            if key == pygame.K_ESCAPE:
+                self.game_state = GAME_STATES["menu"]
+            elif key == KEYS["reload"]:
+                if self.player:
+                    if self.player.start_reload():
+                        self.game_ui.add_message("填裝中...", "info", COLORS["yellow"])
+            elif key == KEYS["weapon_1"]:
+                if self.player and self.player.handle_weapon_switch("1"):
+                    self.game_ui.add_message("切換至手槍", "info")
+            elif key == KEYS["weapon_2"]:
+                if self.player and self.player.handle_weapon_switch("2"):
+                    self.game_ui.add_message("切換至步槍", "info")
+            elif key == KEYS["weapon_3"]:
+                if self.player and self.player.handle_weapon_switch("3"):
+                    self.game_ui.add_message("切換至散彈槍", "info")
+            elif key == KEYS["weapon_4"]:
+                if self.player and self.player.handle_weapon_switch("4"):
+                    self.game_ui.add_message("切換至機關槍", "info")
+            elif key == KEYS["weapon_5"]:
+                if self.player and self.player.handle_weapon_switch("5"):
+                    self.game_ui.add_message("切換至衝鋒槍", "info")
+            elif key == KEYS["skill"]:
+                if self.player:
+                    skill_result = self.player.use_skill()
+                    if skill_result["success"]:
+                        # 對所有敵人造成技能傷害
+                        skill_damage = skill_result["damage"]
+                        enemies_hit = 0
+                        for enemy in self.enemies:
+                            if enemy.is_alive:
+                                if enemy.take_damage(skill_damage):
+                                    enemies_hit += 1
+                                else:
+                                    # 敵人被技能擊殺
+                                    enemies_hit += 1
+
+                        self.game_ui.add_message(
+                            f"技能啟動！擊中 {enemies_hit} 個敵人",
+                            "achievement",
+                            COLORS["purple"],
+                        )
+                        self.game_ui.add_message(
+                            f"消耗生命值 {skill_result['health_cost']}",
+                            "damage",
+                            COLORS["red"],
+                        )
+                    else:
+                        self.game_ui.add_message(
+                            skill_result["reason"], "info", COLORS["yellow"]
+                        )
+
         elif self.game_state == GAME_STATES["game_over"]:
-            self._handle_game_over_keydown(key)
-
-    def _handle_menu_keydown(self, key):
-        """處理主選單按鍵"""
-        if key == pygame.K_SPACE or key == pygame.K_RETURN:
-            # 開始角色選擇
-            self.game_state = GAME_STATES["character_select"]
-        elif key == pygame.K_1:
-            self.enemy_difficulty = "weak"
-        elif key == pygame.K_2:
-            self.enemy_difficulty = "medium"
-        elif key == pygame.K_3:
-            self.enemy_difficulty = "strong"
-        elif key == pygame.K_h:
-            # 切換血量顯示模式
-            if self.health_display_mode == "bar":
-                self.health_display_mode = "number"
-            else:
-                self.health_display_mode = "bar"
-            self.game_ui.set_health_display_mode(self.health_display_mode)
-        elif key == pygame.K_PLUS or key == pygame.K_EQUALS:
-            # 增加玩家血量
-            self.player_max_health = min(200, self.player_max_health + 10)
-        elif key == pygame.K_MINUS:
-            # 減少玩家血量
-            self.player_max_health = max(50, self.player_max_health - 10)
-
-    def _handle_character_select_keydown(self, key):
-        """處理角色選擇按鍵"""
-        character_types = list(CHARACTER_TYPES.keys())
-        
-        if key == pygame.K_UP:
-            self.character_menu_index = (self.character_menu_index - 1) % len(character_types)
-            self.selected_character = character_types[self.character_menu_index]
-        elif key == pygame.K_DOWN:
-            self.character_menu_index = (self.character_menu_index + 1) % len(character_types)
-            self.selected_character = character_types[self.character_menu_index]
-        elif key == pygame.K_RETURN:
-            # 進入場景選擇
-            self.game_state = GAME_STATES["scene_select"]
-        elif key == pygame.K_ESCAPE:
-            # 返回主選單
-            self.game_state = GAME_STATES["menu"]
-
-    def _handle_scene_select_keydown(self, key):
-        """處理場景選擇按鍵"""
-        scene_types = list(SCENE_CONFIGS.keys())
-        
-        if key == pygame.K_UP:
-            self.scene_menu_index = (self.scene_menu_index - 1) % len(scene_types)
-            self.selected_scene = scene_types[self.scene_menu_index]
-        elif key == pygame.K_DOWN:
-            self.scene_menu_index = (self.scene_menu_index + 1) % len(scene_types)
-            self.selected_scene = scene_types[self.scene_menu_index]
-        elif key == pygame.K_RETURN:
-            # 開始遊戲
-            self.start_new_game()
-        elif key == pygame.K_ESCAPE:
-            # 返回角色選擇
-            self.game_state = GAME_STATES["character_select"]
-
-    def _handle_playing_keydown(self, key):
-        """處理遊戲中按鍵"""
-        if key == pygame.K_ESCAPE:
-            # 暫停或返回選單
-            self.game_state = GAME_STATES["menu"]
-        elif key == pygame.K_r:
-            # 重新開始遊戲
-            self.start_new_game()
-        elif key == pygame.K_q and self.player:
-            # 使用技能
-            skill_result = self.player.use_skill()
-            if skill_result.get("success"):
-                # 應用技能效果
-                self.collision_system.apply_skill_effects(
-                    skill_result, self.enemies, SCREEN_WIDTH, SCREEN_HEIGHT
-                )
-                self.game_ui.add_message(
-                    f"使用技能: {skill_result['name']}", "achievement"
-                )
-        elif self.player and key in [pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5]:
-            # 武器切換
-            self.player.handle_weapon_switch(str(key - pygame.K_0))
-
-    def _handle_game_over_keydown(self, key):
-        """處理遊戲結束按鍵"""
-        if key == pygame.K_r:
-            # 重新開始遊戲
-            self.start_new_game()
-        elif key == pygame.K_ESCAPE:
-            # 返回主選單
-            self.game_state = GAME_STATES["menu"]
+            # 遊戲結束狀態的按鍵處理
+            if key == pygame.K_r:
+                self.start_new_game()
+            elif key == pygame.K_ESCAPE:
+                self.game_state = GAME_STATES["menu"]
 
     def _handle_continuous_input(self):
         """
@@ -303,34 +245,29 @@ class BattleArenaGame:
         mouse_pos = pygame.mouse.get_pos()
         mouse_buttons = pygame.mouse.get_pressed()
 
-        # 處理滑鼠右鍵重開遊戲
-        if mouse_buttons[2]:  # 右鍵（索引2）
-            # 防止重複觸發，需要檢查是否剛按下
-            if not hasattr(self, '_right_mouse_pressed'):
-                self._right_mouse_pressed = True
-                self.start_new_game()
-        else:
-            self._right_mouse_pressed = False
-
         # 處理移動（滑鼠優先，如果沒有滑鼠移動則使用鍵盤）
         self.player.handle_input(keys, mouse_pos, mouse_buttons)
 
-        # 處理射擊（支援滑鼠左鍵和空白鍵）
+        # 處理射擊（支援滑鼠右鍵和空白鍵）
         should_shoot = (
-            keys[KEYS["fire"]] or mouse_buttons[0]
-        )  # 空白鍵或滑鼠左鍵（索引0）
+            keys[KEYS["fire"]] or mouse_buttons[2]
+        )  # 空白鍵或滑鼠右鍵（索引2）
 
         if should_shoot:
-            # 使用更新的射擊方法，直接通過 BulletManager 創建子彈
-            shot_result = self.player.shoot(self.bullet_manager)
-            if shot_result:
-                # 統計射擊次數
-                self.game_stats["shots_fired"] += shot_result["bullet_count"]
-            # 使用更新的射擊方法，直接通過 BulletManager 創建子彈
-            shot_result = self.player.shoot(self.bullet_manager)
-            if shot_result:
-                # 統計射擊次數
-                self.game_stats["shots_fired"] += shot_result["bullet_count"]
+            shot_data = self.player.shoot()
+            if shot_data:
+                # 發射子彈
+                for bullet_info in shot_data["bullets"]:
+                    self.bullet_manager.create_bullet(
+                        bullet_info["x"],
+                        bullet_info["y"],
+                        bullet_info["angle"],
+                        bullet_info["speed"],
+                        bullet_info["damage"],
+                        "player",
+                    )
+
+                self.game_stats["shots_fired"] += len(shot_data["bullets"])
 
     def update_game(self):
         """
@@ -513,10 +450,6 @@ class BattleArenaGame:
         """
         if self.game_state == GAME_STATES["menu"]:
             self.draw_menu()
-        elif self.game_state == GAME_STATES["character_select"]:
-            self.draw_character_selection()
-        elif self.game_state == GAME_STATES["scene_select"]:
-            self.draw_scene_selection()
         elif self.game_state == GAME_STATES["playing"]:
             self.draw_game()
         elif self.game_state == GAME_STATES["game_over"]:
@@ -524,26 +457,6 @@ class BattleArenaGame:
 
         # 更新顯示
         pygame.display.flip()
-
-    def draw_character_selection(self):
-        """
-        繪製角色選擇畫面\n
-        """
-        # 清空螢幕
-        self.screen.fill(COLORS["black"])
-        
-        # 使用 GameUI 繪製角色選擇選單
-        self.game_ui.draw_character_selection_menu(self.screen, self.selected_character)
-
-    def draw_scene_selection(self):
-        """
-        繪製場景選擇畫面\n
-        """
-        # 清空螢幕
-        self.screen.fill(COLORS["black"])
-        
-        # 使用 GameUI 繪製場景選擇選單
-        self.game_ui.draw_scene_selection_menu(self.screen, self.selected_scene)
 
     def run(self):
         """

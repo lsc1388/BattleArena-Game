@@ -132,7 +132,10 @@ class PowerUp:
         """
         繪製道具\n
         \n
-        根據道具類型顯示不同顏色和特效\n
+        根據道具類型顯示不同顏色和特效：\n
+        - 火力增強：紅色，有火焰效果\n
+        - 彈藥補給：藍色，有光環效果\n
+        - 散彈模式：紫色，有爆炸效果\n
         \n
         參數:\n
         screen (pygame.Surface): 遊戲畫面物件\n
@@ -153,23 +156,36 @@ class PowerUp:
         draw_x = self.x
         draw_y = self.y + self.float_offset
 
-        # 根據道具類型獲取顏色和效果
-        effect_config = POWERUP_EFFECTS.get(self.powerup_type, {})
-        main_color = effect_config.get("color", COLORS["white"])
-
-        # 根據道具類型選擇特效
+        # 根據道具類型選擇顏色和效果
         if self.powerup_type == "fire_boost":
-            self._draw_fire_effect(screen, draw_x, draw_y, main_color, COLORS["orange"])
+            # 火力增強：紅色系
+            main_color = COLORS["red"]
+            effect_color = COLORS["orange"]
+            self._draw_fire_effect(screen, draw_x, draw_y, main_color, effect_color)
+
         elif self.powerup_type == "ammo_refill":
-            self._draw_ammo_effect(screen, draw_x, draw_y, main_color, COLORS["white"])
+            # 彈藥補給：藍色系
+            main_color = COLORS["blue"]
+            effect_color = COLORS["white"]
+            self._draw_ammo_effect(screen, draw_x, draw_y, main_color, effect_color)
+
         elif self.powerup_type == "scatter_shot":
-            self._draw_scatter_effect(screen, draw_x, draw_y, main_color, COLORS["yellow"])
-        elif self.powerup_type == "health_pack":
-            self._draw_health_effect(screen, draw_x, draw_y, main_color, COLORS["white"])
-        elif self.powerup_type == "speed_boost":
-            self._draw_speed_effect(screen, draw_x, draw_y, main_color, COLORS["white"])
-        elif self.powerup_type in ["machinegun_powerup", "submachinegun_powerup"]:
-            self._draw_weapon_effect(screen, draw_x, draw_y, main_color, COLORS["white"])
+            # 散彈模式：紫色系
+            main_color = COLORS["purple"]
+            effect_color = COLORS["yellow"]
+            self._draw_scatter_effect(screen, draw_x, draw_y, main_color, effect_color)
+
+        elif self.powerup_type == "machinegun_powerup":
+            # 機關槍：深紅色系
+            main_color = (150, 0, 0)  # 深紅色
+            effect_color = COLORS["red"]
+            self._draw_weapon_effect(screen, draw_x, draw_y, main_color, effect_color)
+
+        elif self.powerup_type == "submachinegun_powerup":
+            # 衝鋒槍：深藍色系
+            main_color = (0, 0, 150)  # 深藍色
+            effect_color = COLORS["blue"]
+            self._draw_weapon_effect(screen, draw_x, draw_y, main_color, effect_color)
 
         # 繪製主體方塊
         pygame.draw.rect(screen, main_color, (draw_x, draw_y, self.size, self.size))
@@ -178,12 +194,6 @@ class PowerUp:
         pygame.draw.rect(
             screen, COLORS["white"], (draw_x, draw_y, self.size, self.size), 2
         )
-
-        # 繪製道具圖示/表情符號（如果有的話）
-        emoji = effect_config.get("emoji", "")
-        if emoji:
-            # 這裡可以用字體渲染emoji，但為了簡化暫時跳過
-            pass
 
     def _draw_fire_effect(self, screen, x, y, main_color, effect_color):
         """繪製火力增強的火焰效果"""
@@ -240,51 +250,6 @@ class PowerUp:
         # 繪製發光效果
         glow_radius = self.size // 2 + int(abs(math.sin(self.pulse_timer * 0.15)) * 8)
         pygame.draw.circle(screen, effect_color, (center_x, center_y), glow_radius, 1)
-
-    def _draw_health_effect(self, screen, x, y, main_color, effect_color):
-        """繪製醫療包的十字效果"""
-        center_x = int(x + self.size // 2)
-        center_y = int(y + self.size // 2)
-        
-        # 繪製十字標誌
-        cross_size = self.size // 3
-        line_width = 3
-        
-        # 垂直線
-        pygame.draw.line(screen, effect_color, 
-                        (center_x, center_y - cross_size//2), 
-                        (center_x, center_y + cross_size//2), line_width)
-        # 水平線
-        pygame.draw.line(screen, effect_color,
-                        (center_x - cross_size//2, center_y),
-                        (center_x + cross_size//2, center_y), line_width)
-        
-        # 脈動光環
-        pulse_radius = self.size // 2 + int(abs(math.sin(self.pulse_timer * 0.2)) * 6)
-        pygame.draw.circle(screen, main_color, (center_x, center_y), pulse_radius, 2)
-
-    def _draw_speed_effect(self, screen, x, y, main_color, effect_color):
-        """繪製速度提升的閃電效果"""
-        center_x = int(x + self.size // 2)
-        center_y = int(y + self.size // 2)
-        
-        # 繪製閃電形狀
-        lightning_points = [
-            (center_x - 6, center_y - 8),
-            (center_x + 2, center_y - 3),
-            (center_x - 2, center_y),
-            (center_x + 6, center_y + 8),
-            (center_x - 2, center_y + 3),
-            (center_x + 2, center_y),
-        ]
-        
-        if len(lightning_points) >= 3:
-            pygame.draw.polygon(screen, effect_color, lightning_points)
-        
-        # 能量波動效果
-        for i in range(3):
-            wave_radius = self.size // 2 + i * 4 + int(abs(math.sin(self.pulse_timer * 0.3 + i)) * 5)
-            pygame.draw.circle(screen, main_color, (center_x, center_y), wave_radius, 1)
 
     def get_rect(self):
         """

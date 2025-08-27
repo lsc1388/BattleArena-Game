@@ -47,7 +47,6 @@ class CollisionSystem:
             "enemies_hit": [],
             "powerups_collected": [],
             "bullets_destroyed": 0,
-            "skill_effects": [],
         }
 
         # 1. 檢查敵人子彈與玩家的碰撞
@@ -66,76 +65,6 @@ class CollisionSystem:
         collision_summary["powerups_collected"] = powerup_pickups
 
         return collision_summary
-
-    def apply_skill_effects(self, skill_result, enemies):
-        """
-        處理技能效果對敵人的影響\n
-        \n
-        參數:\n
-        skill_result (dict): 技能使用結果\n
-        enemies (list): 敵人列表\n
-        \n
-        回傳:\n
-        list: 受影響的敵人列表\n
-        """
-        if not skill_result.get("success", False):
-            return []
-
-        affected_enemies = []
-        skill_damage = skill_result["damage"]
-        skill_type = skill_result["skill_type"]
-        additional_effects = skill_result.get("additional_effects", {})
-
-        for enemy in enemies[:]:
-            if not enemy.is_alive:
-                continue
-
-            # 基礎傷害
-            original_health = enemy.health
-            enemy.take_damage(skill_damage)
-
-            enemy_effect = {
-                "enemy": enemy,
-                "damage": skill_damage,
-                "killed": not enemy.is_alive,
-                "skill_type": skill_type,
-                "original_health": original_health,
-            }
-
-            # 應用額外效果
-            if "dot" in additional_effects:
-                # 火焰技能的持續傷害
-                enemy_effect["dot_applied"] = True
-                enemy_effect["dot_damage"] = additional_effects["dot"]["damage"]
-                enemy_effect["dot_duration"] = additional_effects["dot"]["duration"]
-
-            if "slow" in additional_effects:
-                # 冰凍技能的減速效果
-                enemy_effect["slow_applied"] = True
-                enemy_effect["slow_factor"] = additional_effects["slow"]["slow_factor"]
-                enemy_effect["slow_duration"] = additional_effects["slow"]["duration"]
-                
-                # 實際應用減速效果到敵人身上
-                if hasattr(enemy, 'apply_slow_effect'):
-                    enemy.apply_slow_effect(
-                        additional_effects["slow"]["slow_factor"],
-                        additional_effects["slow"]["duration"]
-                    )
-
-            affected_enemies.append(enemy_effect)
-
-            # 記錄碰撞事件
-            self.collision_events.append({
-                "type": "skill_damage",
-                "skill_type": skill_type,
-                "damage": skill_damage,
-                "enemy": enemy,
-                "position": (enemy.x, enemy.y),
-                "killed": not enemy.is_alive,
-                "additional_effects": additional_effects,
-            })
-
-        return affected_enemies
 
     def _check_bullets_vs_player(self, player, bullet_manager):
         """
