@@ -42,8 +42,13 @@ class Enemy:
         # 位置和尺寸設定
         self.x = x
         self.y = y
-        self.width = ENEMY_SIZE
-        self.height = ENEMY_SIZE
+        # BOSS 使用較大的尺寸
+        if enemy_type == "boss":
+            self.width = ENEMY_SIZE * 3
+            self.height = ENEMY_SIZE * 3
+        else:
+            self.width = ENEMY_SIZE
+            self.height = ENEMY_SIZE
 
         # 敵人類型設定
         self.enemy_type = enemy_type
@@ -88,6 +93,18 @@ class Enemy:
         # 狀態機
         self.state = "patrol"  # 可能狀態: patrol, chase, attack, dodge
         self.state_timer = 0
+
+        # BOSS 特殊攻擊設定（若為 BOSS 才會使用）
+        self.special_cooldown = 3000  # 毫秒，BOSS 使用特殊攻擊的冷卻
+        self.last_special_time = 0
+        self.special_burst_count = 12  # BOSS 放射子彈數量
+        self.special_burst_speed = BULLET_SPEED * 0.8
+        # 注意：self.damage 在上面已經設定，這裡使用當前 damage 來計算特殊攻擊傷害
+        self.special_burst_damage = int(self.damage * 1.5)
+
+        # 狀態效果系統
+        self.status_effects = {}  # 儲存當前的狀態效果
+        self.original_speed = self.speed  # 儲存原始速度（用於凍結後恢復）
 
     def update_ai_behavior(self, player, screen_width, screen_height):
         """
@@ -412,11 +429,42 @@ class Enemy:
         回傳:\n
         dict: 射擊資訊，如果不能射擊則回傳 None\n
         """
+        current_time = pygame.time.get_ticks()
+
+        # BOSS 的特殊攻擊：放射狀子彈（360度）
+        if self.enemy_type == "boss":
+            # 如果特殊攻擊的冷卻到了，發動放射攻擊
+            if current_time - self.last_special_time >= self.special_cooldown:
+                self.last_special_time = current_time
+                self.last_shot_time = current_time
+
+                # 建立多個子彈的資料
+                shots = []
+                base_x = self.x + self.width / 2
+                base_y = self.y + self.height / 2
+                # 平均分佈角度
+                angle_step = 360.0 / max(1, self.special_burst_count)
+                for i in range(self.special_burst_count):
+                    angle = i * angle_step
+                    shots.append(
+                        {
+                            "x": base_x,
+                            "y": base_y,
+                            "angle": angle,
+                            "speed": self.special_burst_speed,
+                            "damage": self.special_burst_damage,
+                            "owner": "enemy",
+                        }
+                    )
+
+                return shots
+
+        # 一般或 BOSS 的單發行為
         if not self.can_shoot():
             return None
 
         # 記錄射擊時間
-        self.last_shot_time = pygame.time.get_ticks()
+        self.last_shot_time = current_time
 
         # 計算射擊角度
         angle = self.calculate_shot_angle(player)
@@ -458,6 +506,145 @@ class Enemy:
 
         return self.is_alive
 
+    def apply_status_effect(self, effect_type, duration, damage_per_second=0):
+        """
+        對敵人套用狀態效果\n
+        \n
+        支援的狀態效果：\n
+        - 'freeze'：冰凍效果，減緩移動速度\n
+        - 'burn'：燃燒效果，持續造成傷害\n
+        \n
+        參數:\n
+        effect_type (str): 狀態效果類型 ('freeze', 'burn')\n
+        duration (int): 效果持續時間（毫秒）\n
+        damage_per_second (int): 每秒造成的傷害（僅用於燃燒效果）\n
+        """
+        current_time = pygame.time.get_ticks()
+
+        if effect_type == "freeze":
+            # 冰凍效果：減速50%
+            self.status_effects["freeze"] = {
+                "start_time": current_time,
+                "duration": duration,
+                "speed_reduction": 0.5,  # 減速50%
+            }
+            # 立即套用減速效果
+            self.speed = self.original_speed * (1 - 0.5)
+
+        elif effect_type == "burn":
+            # 燃燒效果：持續傷害
+            self.status_effects["burn"] = {
+                "start_time": current_time,
+                "duration": duration,
+                "damage_per_second": damage_per_second,
+                "last_damage_time": current_time,
+            }
+
+    def update_status_effects(self):
+        """
+        更新並處理所有狀態效果\n
+        \n
+        檢查效果是否過期，處理持續傷害等\n
+        """
+        current_time = pygame.time.get_ticks()
+        expired_effects = []
+
+        for effect_type, effect_data in self.status_effects.items():
+            # 檢查效果是否過期
+            elapsed_time = current_time - effect_data["start_time"]
+            if elapsed_time >= effect_data["duration"]:
+                expired_effects.append(effect_type)
+                continue
+
+            # 處理各種效果的持續作用
+            if effect_type == "burn":
+                # 燃燒效果：每秒造成傷害
+                time_since_last_damage = current_time - effect_data["last_damage_time"]
+                if time_since_last_damage >= 1000:  # 每1000毫秒（1秒）造成一次傷害
+                    burn_damage = effect_data["damage_per_second"]
+                    self.health -= burn_damage
+                    effect_data["last_damage_time"] = current_time
+
+                    # 確保生命值不會低於0
+                    if self.health <= 0:
+                        self.health = 0
+                        self.is_alive = False
+
+        # 移除過期的效果
+        for effect_type in expired_effects:
+            self._remove_status_effect(effect_type)
+
+    def _remove_status_effect(self, effect_type):
+        """
+        移除指定的狀態效果並恢復正常狀態\n
+        \n
+        參數:\n
+        effect_type (str): 要移除的狀態效果類型\n
+        """
+        if effect_type in self.status_effects:
+            if effect_type == "freeze":
+                # 恢復原始移動速度
+                self.speed = self.original_speed
+
+            # 移除效果
+            del self.status_effects[effect_type]
+
+    def has_status_effect(self, effect_type):
+        """
+        檢查是否有指定的狀態效果\n
+        \n
+        參數:\n
+        effect_type (str): 狀態效果類型\n
+        \n
+        回傳:\n
+        bool: 是否有該狀態效果\n
+        """
+        return effect_type in self.status_effects
+
+    def get_status_effects_info(self):
+        """
+        取得當前所有狀態效果的資訊\n
+        \n
+        回傳:\n
+        dict: 狀態效果資訊\n
+        """
+        current_time = pygame.time.get_ticks()
+        effects_info = {}
+
+        for effect_type, effect_data in self.status_effects.items():
+            remaining_time = effect_data["duration"] - (
+                current_time - effect_data["start_time"]
+            )
+            effects_info[effect_type] = {
+                "remaining_time": max(0, remaining_time) / 1000,  # 轉成秒
+                "effect_data": effect_data,
+            }
+
+        return effects_info
+        """
+        承受傷害\n
+        \n
+        參數:\n
+        damage (int): 傷害數值\n
+        \n
+        回傳:\n
+        bool: 是否仍然存活\n
+        """
+        self.health -= damage
+
+        # 確保生命值不會低於0
+        if self.health <= 0:
+            self.health = 0
+            self.is_alive = False
+
+        # 受傷時可能改變行為模式
+        if self.health < self.max_health * 0.5:
+            # 血量低於50%時變得更加謹慎
+            if self.move_pattern == "simple":
+                self.move_pattern = "tactical"  # 升級AI行為
+
+        return self.is_alive
+
     def update(self, player, screen_width, screen_height):
         """
         更新敵人狀態（每幀呼叫）\n
@@ -467,6 +654,13 @@ class Enemy:
         screen_width (int): 螢幕寬度\n
         screen_height (int): 螢幕高度\n
         """
+        if not self.is_alive:
+            return
+
+        # 更新狀態效果
+        self.update_status_effects()
+
+        # 如果被狀態效果殺死則直接返回
         if not self.is_alive:
             return
 
@@ -512,6 +706,20 @@ class Enemy:
         if health_ratio < 0.5:
             # 血量低時顏色變暗
             base_color = tuple(int(c * 0.7) for c in base_color)
+
+        # 根據狀態效果調整顏色
+        if "freeze" in self.status_effects:
+            # 冰凍狀態：添加藍色調
+            base_color = tuple(
+                min(255, int(c * 0.8 + 50)) if i == 2 else int(c * 0.8)
+                for i, c in enumerate(base_color)
+            )
+        elif "burn" in self.status_effects:
+            # 燃燒狀態：添加紅色調
+            base_color = tuple(
+                min(255, int(c * 0.8 + 70)) if i == 0 else int(c * 0.8)
+                for i, c in enumerate(base_color)
+            )
 
         # 根據敵人類型繪製不同形狀
         if self.enemy_type == "robot":
@@ -571,6 +779,13 @@ class Enemy:
         # 顯示敵人類型指示器（角落標識）
         self._draw_type_indicator(screen)
 
+        # 若為 BOSS 顯示血條
+        if self.enemy_type == "boss":
+            self._draw_health_bar(screen)
+
+        # 顯示狀態效果視覺提示
+        self._draw_status_effects(screen)
+
     def _draw_type_indicator(self, screen):
         """
         繪製敵人類型指示器
@@ -606,6 +821,78 @@ class Enemy:
                 (indicator_x + indicator_size, indicator_y + indicator_size),
             ]
             pygame.draw.polygon(screen, (0, 100, 0), points)
+
+    def _draw_health_bar(self, screen):
+        """
+        為大型敵人（如 BOSS）繪製血條
+        """
+        bar_width = self.width
+        bar_height = 8
+        bar_x = self.x
+        bar_y = self.y - 15
+
+        # 背景
+        pygame.draw.rect(screen, (60, 60, 60), (bar_x, bar_y, bar_width, bar_height))
+
+        # 前景（生命）
+        health_ratio = max(0, self.health) / max(1, self.max_health)
+        health_width = int(bar_width * health_ratio)
+        pygame.draw.rect(
+            screen, (200, 0, 200), (bar_x, bar_y, health_width, bar_height)
+        )
+
+    def _draw_status_effects(self, screen):
+        """
+        繪製狀態效果的視覺提示
+
+        參數:
+        screen (pygame.Surface): 遊戲畫面物件
+        """
+        if not self.status_effects:
+            return
+
+        indicator_y = self.y - 25  # 在敵人上方顯示
+        indicator_x = self.x
+        indicator_size = 8
+
+        for i, effect_type in enumerate(self.status_effects.keys()):
+            x_pos = indicator_x + i * (indicator_size + 2)
+
+            if effect_type == "freeze":
+                # 冰凍效果：藍色雪花圖案
+                pygame.draw.circle(
+                    screen, (173, 216, 230), (x_pos + 4, indicator_y + 4), 4
+                )
+                # 簡單的雪花線條
+                pygame.draw.line(
+                    screen,
+                    (255, 255, 255),
+                    (x_pos + 2, indicator_y + 4),
+                    (x_pos + 6, indicator_y + 4),
+                    1,
+                )
+                pygame.draw.line(
+                    screen,
+                    (255, 255, 255),
+                    (x_pos + 4, indicator_y + 2),
+                    (x_pos + 4, indicator_y + 6),
+                    1,
+                )
+
+            elif effect_type == "burn":
+                # 燃燒效果：紅色火焰圖案
+                pygame.draw.circle(
+                    screen, (255, 69, 0), (x_pos + 4, indicator_y + 4), 4
+                )
+                # 簡單的火焰效果
+                for flame_y in range(2):
+                    flame_color = (255, 165 - flame_y * 40, 0)
+                    pygame.draw.circle(
+                        screen,
+                        flame_color,
+                        (x_pos + 4, indicator_y + 2 + flame_y),
+                        2 - flame_y,
+                    )
 
     def get_rect(self):
         """

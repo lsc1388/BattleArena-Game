@@ -188,17 +188,35 @@ class GameUI:
         )
         screen.blit(progress_surface, (level_info_x, progress_y))
 
-        # 敵人類型顯示
+        # 敵人類型顯示（支援單一類型或混合 enemy_counts）
         enemy_type_y = progress_y + 20
-        enemy_type_config = AI_ENEMY_TYPES.get(level_config["enemy_type"])
-        if enemy_type_config:
-            enemy_info = (
-                f"敵人: {enemy_type_config['emoji']} {enemy_type_config['name']}"
-            )
-            enemy_surface = font_manager.render_text(
-                enemy_info, "small", COLORS["gray"]
-            )
-            screen.blit(enemy_surface, (level_info_x, enemy_type_y))
+        # 若有單一 enemy_type 欄位，優先顯示
+        if "enemy_type" in level_config:
+            enemy_type_config = AI_ENEMY_TYPES.get(level_config["enemy_type"])
+            if enemy_type_config:
+                enemy_info = (
+                    f"敵人: {enemy_type_config['emoji']} {enemy_type_config['name']}"
+                )
+                enemy_surface = font_manager.render_text(
+                    enemy_info, "small", COLORS["gray"]
+                )
+                screen.blit(enemy_surface, (level_info_x, enemy_type_y))
+        elif "enemy_counts" in level_config:
+            # 混合顯示各種敵人與數量
+            counts = level_config.get("enemy_counts", {})
+            parts = []
+            for t, cnt in counts.items():
+                cfg = AI_ENEMY_TYPES.get(t, {})
+                emoji = cfg.get("emoji", "?")
+                name = cfg.get("name", t)
+                parts.append(f"{emoji}{name}x{cnt}")
+
+            if parts:
+                enemy_info = "敵人: " + ", ".join(parts)
+                enemy_surface = font_manager.render_text(
+                    enemy_info, "small", COLORS["gray"]
+                )
+                screen.blit(enemy_surface, (level_info_x, enemy_type_y))
 
     def _draw_health_display(self, screen, player):
         """

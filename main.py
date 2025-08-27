@@ -130,10 +130,12 @@ class BattleArenaGame:
 
         # 重置敵人系統
         self.enemy_spawn_count = 1  # 重置敵人數量
-        self.current_level_enemy_type = LEVEL_CONFIGS[self.current_level]["enemy_type"]
+        # 根據 LEVEL_CONFIGS 決定當前關卡的敵人池（可能為混合）
+        level_config = LEVEL_CONFIGS[self.current_level]
+        self.current_level_enemy_counts = level_config.get("enemy_counts", {})
         self.enemies.clear()
 
-        # 創建初始敵人
+        # 創建初始敵人（生成一隻以啟動流程）
         self._spawn_enemy()
 
         # 清空所有管理系統
@@ -159,8 +161,40 @@ class BattleArenaGame:
         enemy_x = random.randint(50, SCREEN_WIDTH - ENEMY_SIZE - 50)
         enemy_y = random.randint(50, 150)
 
-        # 根據當前關卡選擇敵人類型
-        enemy_type = self.current_level_enemy_type
+        # 根據當前關卡選擇敵人類型（支援混合）
+        level_config = LEVEL_CONFIGS[self.current_level]
+        enemy_counts = level_config.get("enemy_counts", {})
+
+        # 如果是第三關且已經完成所有普通敵人但還沒生成 BOSS，則生成 BOSS
+        if level_config.get("boss", False):
+            total_needed = level_config.get("enemy_count", 0)
+            # 計算目前已經擊殺與場上的普通敵人數
+            current_alive_normal = len(
+                [e for e in self.enemies if e.enemy_type != "boss" and e.is_alive]
+            )
+            killed = self.level_enemies_killed
+
+            # 如果普通敵人已全部產生並被擊殺且沒有 BOSS 在場，就生成 BOSS
+            if killed >= total_needed and not any(
+                e.enemy_type == "boss" for e in self.enemies
+            ):
+                boss_x = SCREEN_WIDTH // 2 - ENEMY_SIZE * 3 // 2
+                boss_y = 80
+                boss = Enemy(boss_x, boss_y, self.enemy_difficulty, "boss")
+                self.enemies.append(boss)
+                self.game_ui.add_message("BOSS 出現！", "achievement", COLORS["purple"])
+                return
+
+        # 若為一般生成，從 enemy_counts 池中隨機抽一種類型
+        if enemy_counts:
+            types = []
+            for t, cnt in enemy_counts.items():
+                # 將每種敵人加入權重列表，讓出現機率與需求數量成比例
+                types.extend([t] * max(1, cnt))
+            enemy_type = random.choice(types)
+        else:
+            # 回退：若沒有指定則使用 zombie
+            enemy_type = "zombie"
 
         # 創建敵人
         enemy = Enemy(enemy_x, enemy_y, self.enemy_difficulty, enemy_type)
@@ -342,6 +376,25 @@ class BattleArenaGame:
                 else:
                     self.game_ui.add_message("準心已關閉", "info", COLORS["orange"])
 
+            # 開發/測試用快捷鍵（F1: 立即召喚 BOSS, F2: 標記當前關卡已完成）
+            elif key == pygame.K_F1:
+                # 直接在場上生成 BOSS（如果還沒生成）
+                if not any(e.enemy_type == "boss" for e in self.enemies):
+                    boss_x = SCREEN_WIDTH // 2 - ENEMY_SIZE * 3 // 2
+                    boss_y = 80
+                    boss = Enemy(boss_x, boss_y, self.enemy_difficulty, "boss")
+                    self.enemies.append(boss)
+                    self.game_ui.add_message(
+                        "測試: 已召喚 BOSS", "info", COLORS["purple"]
+                    )
+            elif key == pygame.K_F2:
+                # 標記本關卡已完成（快速跳關）
+                level_config = LEVEL_CONFIGS.get(self.current_level, {})
+                self.level_enemies_killed = level_config.get("enemy_count", 0)
+                self.game_ui.add_message(
+                    "測試: 本關標記為已完成", "info", COLORS["blue"]
+                )
+
         elif self.game_state == GAME_STATES["game_over"]:
             # 遊戲結束狀態的按鍵處理
             if key == pygame.K_r:
@@ -415,17 +468,29 @@ class BattleArenaGame:
             if enemy.is_alive:
                 enemy.update(self.player, SCREEN_WIDTH, SCREEN_HEIGHT)
 
-                # 敵人射擊
+                # 敵人射擊（支援單發 dict 或 多發 list 回傳）
                 shot_data = enemy.shoot(self.player)
                 if shot_data:
-                    self.bullet_manager.create_bullet(
-                        shot_data["x"],
-                        shot_data["y"],
-                        shot_data["angle"],
-                        shot_data["speed"],
-                        shot_data["damage"],
-                        shot_data["owner"],
-                    )
+                    # 如果回傳為 list，表示多發子彈（例如 BOSS 放射攻擊）
+                    if isinstance(shot_data, list):
+                        for s in shot_data:
+                            self.bullet_manager.create_bullet(
+                                s["x"],
+                                s["y"],
+                                s["angle"],
+                                s["speed"],
+                                s["damage"],
+                                s.get("owner", "enemy"),
+                            )
+                    elif isinstance(shot_data, dict):
+                        self.bullet_manager.create_bullet(
+                            shot_data["x"],
+                            shot_data["y"],
+                            shot_data["angle"],
+                            shot_data["speed"],
+                            shot_data["damage"],
+                            shot_data.get("owner", "enemy"),
+                        )
             else:
                 # 移除死亡的敵人
                 self.enemies.remove(enemy)
@@ -524,27 +589,45 @@ class BattleArenaGame:
 
         level_config = LEVEL_CONFIGS[self.current_level]
 
-        # 檢查是否已擊殺足夠的敵人
-        if self.level_enemies_killed >= level_config["enemy_count"]:
-            # 完成當前關卡
+        # 如果關卡有 BOSS，先判斷 BOSS 是否存在且已被擊敗
+        if level_config.get("boss", False):
+            # 如果 BOSS 在場且已死亡，視為關卡完成
+            boss_alive = any(
+                e.enemy_type == "boss" and e.is_alive for e in self.enemies
+            )
+            if not boss_alive and self.level_enemies_killed >= level_config.get(
+                "enemy_count", 0
+            ):
+                # 完成第三關（含 BOSS）
+                self.game_ui.add_message(
+                    level_config["completion_message"], "achievement", COLORS["green"]
+                )
+                self.game_completed = True
+                self.enemies.clear()
+                return
+
+        # 一般情況：檢查是否已擊殺足夠的普通敵人
+        required = level_config.get("enemy_count", 0)
+        if self.level_enemies_killed >= required:
+            # 如果還有下一關則進入下一關
             self.game_ui.add_message(
-                level_config["completion_message"], "achievement", COLORS["green"]
+                level_config.get("completion_message", "關卡完成！"),
+                "achievement",
+                COLORS["green"],
             )
 
-            # 檢查是否還有更多關卡
             if self.current_level < len(LEVEL_CONFIGS):
                 # 進入下一關
                 self.current_level += 1
                 self.level_enemies_killed = 0
-                self.current_level_enemy_type = LEVEL_CONFIGS[self.current_level][
-                    "enemy_type"
-                ]
-
-                # 清除剩餘敵人
+                # 重新設置敵人池
+                next_level_config = LEVEL_CONFIGS[self.current_level]
+                self.current_level_enemy_counts = next_level_config.get(
+                    "enemy_counts", {}
+                )
                 self.enemies.clear()
 
                 # 顯示新關卡資訊
-                next_level_config = LEVEL_CONFIGS[self.current_level]
                 self.game_ui.add_message(
                     f"{next_level_config['name']}", "achievement", COLORS["blue"]
                 )
@@ -552,9 +635,9 @@ class BattleArenaGame:
                     f"{next_level_config['description']}", "info", COLORS["yellow"]
                 )
             else:
-                # 完成所有關卡，遊戲勝利
+                # 沒有更多關卡，直接完成遊戲
                 self.game_completed = True
-                self.enemies.clear()  # 清除所有敵人
+                self.enemies.clear()
                 self.game_ui.add_message(
                     "遊戲完成！",
                     "achievement",

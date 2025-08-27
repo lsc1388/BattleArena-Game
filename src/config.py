@@ -303,6 +303,17 @@ AI_ENEMY_TYPES = {
         "damage": 25,
         "attack_frequency": 2000,  # 2秒攻擊頻率
     },
+    "boss": {
+        "name": "BOSS",
+        "emoji": "👹",
+        "color": (180, 0, 180),  # 紫色
+        "base_health": 500,  # BOSS 預設生命
+        "speed_modifier": 0.6,
+        "accuracy_modifier": 1.0,
+        "description": "強大的頭目級敵人",
+        "damage": 50,
+        "attack_frequency": 1200,
+    },
 }
 
 # 遊戲狀態
@@ -319,16 +330,26 @@ GAME_STATES = {
 LEVEL_CONFIGS = {
     1: {
         "name": "第一關 - 殭屍來襲",
-        "enemy_type": "zombie",
-        "enemy_count": 3,
-        "description": "擊敗 3 個殭屍",
+        # 單一類型關卡也可以用 enemy_counts 結構，方便擴展
+        "enemy_counts": {"zombie": 7},
+        "enemy_count": 7,
+        "description": "擊敗 7 個殭屍",
         "completion_message": "第一關完成！準備迎接外星人入侵！",
     },
     2: {
         "name": "第二關 - 外星人入侵",
-        "enemy_type": "alien",
-        "enemy_count": 5,
-        "description": "擊敗 5 個外星人",
-        "completion_message": "恭喜！你贏了！成功保衛了地球！",
+        "enemy_counts": {"alien": 10},
+        "enemy_count": 10,
+        "description": "擊敗 10 個外星人",
+        "completion_message": "第二關完成！小心混合的敵人與 BOSS！",
+    },
+    3: {
+        "name": "第三關 - 混合來襲與 BOSS",
+        # 第三關為混合敵人：15 殭屍 + 10 外星人，之後產生一隻 BOSS
+        "enemy_counts": {"zombie": 15, "alien": 10},
+        "enemy_count": 25,  # 合計數
+        "boss": True,
+        "description": "擊敗 15 個殭屍與 10 個外星人，然後擊敗 BOSS",
+        "completion_message": "已擊敗 BOSS！恭喜完成遊戲！",
     },
 }
