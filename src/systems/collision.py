@@ -265,5 +265,3 @@ class CollisionSystem:
             obj.y = 0
         elif obj.y + obj.height > screen_height:
             obj.y = screen_height - obj.height
-
-
