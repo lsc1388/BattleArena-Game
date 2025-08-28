@@ -46,7 +46,7 @@ class GameUI:
         self.weapon_info_pos = (20, 150)  # 相應調整武器資訊位置
         self.powerup_list_pos = (20, 200)  # 相應調整強化效果位置
         self.score_pos = (screen_width - 220, 20)
-        self.skill_cooldown_pos = (screen_width - 220, 60)
+        self.skill_cooldown_pos = (screen_width - 220, 90)  # 調整位置避免與命中率重疊
 
         # 訊息系統
         self.messages = []
@@ -92,6 +92,7 @@ class GameUI:
         game_stats,
         current_level=1,
         level_enemies_killed=0,
+        powerup_manager=None,
     ):
         """
         繪製所有UI元素\n
@@ -104,6 +105,7 @@ class GameUI:
         game_stats (dict): 遊戲統計資料\n
         current_level (int): 當前關卡數\n
         level_enemies_killed (int): 當前關卡已擊殺敵人數\n
+        powerup_manager: 道具管理器（可選）\n
         """
         # 繪製關卡資訊（左上角）
         self._draw_level_info(screen, current_level, level_enemies_killed)
@@ -133,7 +135,7 @@ class GameUI:
         self._draw_crosshair(screen, player)
 
         # 繪製小地圖（可選）
-        self._draw_minimap(screen, player, enemies)
+        self._draw_minimap(screen, player, enemies, powerup_manager)
 
     def _draw_level_info(self, screen, current_level, level_enemies_killed):
         """
@@ -595,7 +597,7 @@ class GameUI:
             text_rect = text_surface.get_rect(center=(message_x, message_y))
             screen.blit(text_surface, text_rect)
 
-    def _draw_minimap(self, screen, player, enemies):
+    def _draw_minimap(self, screen, player, enemies, powerup_manager=None):
         """
         繪製小地圖（右下角）\n
         \n
@@ -603,6 +605,7 @@ class GameUI:
         screen (pygame.Surface): 遊戲畫面物件\n
         player: 玩家物件\n
         enemies: 敵人列表\n
+        powerup_manager: 道具管理器（可選）\n
         """
         # 小地圖設定
         minimap_size = 100
@@ -637,6 +640,110 @@ class GameUI:
                 enemy_map_x = minimap_x + int(enemy.x * scale_x)
                 enemy_map_y = minimap_y + int(enemy.y * scale_y)
                 pygame.draw.circle(screen, COLORS["red"], (enemy_map_x, enemy_map_y), 2)
+
+        # 繪製道具位置
+        if powerup_manager:
+            for powerup in powerup_manager.powerups:
+                if powerup.is_active:
+                    powerup_map_x = minimap_x + int(powerup.x * scale_x)
+                    powerup_map_y = minimap_y + int(powerup.y * scale_y)
+
+                    # 根據道具類型選擇顏色和樣式（與主遊戲保持一致）
+                    if powerup.powerup_type == "fire_boost":
+                        # 火力增強：紅色主體 + 橘色光環
+                        main_color = COLORS["red"]
+                        effect_color = COLORS["orange"]
+                        # 繪製光環效果
+                        pygame.draw.circle(
+                            screen, effect_color, (powerup_map_x, powerup_map_y), 4, 1
+                        )
+                        pygame.draw.circle(
+                            screen, main_color, (powerup_map_x, powerup_map_y), 2
+                        )
+
+                    elif powerup.powerup_type == "ammo_refill":
+                        # 彈藥補給：藍色主體 + 白色光環
+                        main_color = COLORS["blue"]
+                        effect_color = COLORS["white"]
+                        # 繪製光環效果
+                        pygame.draw.circle(
+                            screen, effect_color, (powerup_map_x, powerup_map_y), 4, 1
+                        )
+                        pygame.draw.circle(
+                            screen, main_color, (powerup_map_x, powerup_map_y), 2
+                        )
+
+                    elif powerup.powerup_type == "scatter_shot":
+                        # 散彈模式：紫色主體 + 黃色光環
+                        main_color = COLORS["purple"]
+                        effect_color = COLORS["yellow"]
+                        # 繪製光環效果
+                        pygame.draw.circle(
+                            screen, effect_color, (powerup_map_x, powerup_map_y), 4, 1
+                        )
+                        pygame.draw.circle(
+                            screen, main_color, (powerup_map_x, powerup_map_y), 2
+                        )
+
+                    elif powerup.powerup_type == "machinegun_powerup":
+                        # 機關槍：深紅色主體 + 紅色光環
+                        main_color = (150, 0, 0)  # 深紅色
+                        effect_color = COLORS["red"]
+                        # 繪製光環效果
+                        pygame.draw.circle(
+                            screen, effect_color, (powerup_map_x, powerup_map_y), 4, 1
+                        )
+                        pygame.draw.rect(
+                            screen,
+                            main_color,
+                            (powerup_map_x - 1, powerup_map_y - 1, 3, 3),
+                        )
+
+                    elif powerup.powerup_type == "submachinegun_powerup":
+                        # 衝鋒槍：深藍色主體 + 藍色光環
+                        main_color = (0, 0, 150)  # 深藍色
+                        effect_color = COLORS["blue"]
+                        # 繪製光環效果
+                        pygame.draw.circle(
+                            screen, effect_color, (powerup_map_x, powerup_map_y), 4, 1
+                        )
+                        pygame.draw.rect(
+                            screen,
+                            main_color,
+                            (powerup_map_x - 1, powerup_map_y - 1, 3, 3),
+                        )
+
+                    elif powerup.powerup_type == "health_pack":
+                        # 補血包：紅色主體 + 白色光環 + 十字標記
+                        main_color = COLORS["red"]
+                        effect_color = COLORS["white"]
+                        # 繪製光環效果
+                        pygame.draw.circle(
+                            screen, effect_color, (powerup_map_x, powerup_map_y), 4, 1
+                        )
+                        pygame.draw.circle(
+                            screen, main_color, (powerup_map_x, powerup_map_y), 2
+                        )
+                        # 繪製十字標記
+                        pygame.draw.line(
+                            screen,
+                            effect_color,
+                            (powerup_map_x - 1, powerup_map_y),
+                            (powerup_map_x + 1, powerup_map_y),
+                            1,
+                        )
+                        pygame.draw.line(
+                            screen,
+                            effect_color,
+                            (powerup_map_x, powerup_map_y - 1),
+                            (powerup_map_x, powerup_map_y + 1),
+                            1,
+                        )
+                    else:
+                        # 其他道具：綠色圓點（保持原有樣式）
+                        pygame.draw.circle(
+                            screen, COLORS["green"], (powerup_map_x, powerup_map_y), 2
+                        )
 
     def add_message(self, text, message_type="info", color=None):
         """

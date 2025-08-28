@@ -189,6 +189,360 @@ class Bullet:
         }
 
 
+######################技能追蹤子彈類別######################
+
+
+class SkillBullet(Bullet):
+    """
+    技能追蹤子彈類別 - 能夠自動追蹤指定敵人的特殊子彈\n
+    \n
+    此類別繼承自 Bullet，額外提供：\n
+    1. 自動尋找並追蹤指定的敵人\n
+    2. 彎曲軌跡移動\n
+    3. 技能特效視覺效果\n
+    4. 多次穿透攻擊能力\n
+    5. 3秒生命時間限制\n
+    \n
+    屬性:\n
+    target (object): 當前追蹤的目標敵人\n
+    tracking_speed (float): 追蹤轉向速度\n
+    max_tracking_distance (float): 最大追蹤距離\n
+    skill_type (str): 技能類型（'laser', 'fire', 'ice'）\n
+    effect_color (tuple): 技能特效顏色\n
+    pierce_count (int): 剩餘穿透次數\n
+    lifetime (int): 子彈生命時間（毫秒）\n
+    start_time (int): 子彈創建時間\n
+    """
+
+    def __init__(
+        self,
+        x,
+        y,
+        angle,
+        speed,
+        damage,
+        owner,
+        skill_type,
+        effect_color,
+        enemies,
+        target_enemy=None,
+        lifetime=3000,
+    ):
+        """
+        初始化技能追蹤子彈\n
+        \n
+        參數:\n
+        x (float): 初始 X 座標位置\n
+        y (float): 初始 Y 座標位置\n
+        angle (float): 初始發射角度（度數）\n
+        speed (float): 子彈移動速度\n
+        damage (int): 子彈傷害值\n
+        owner (str): 發射者類型（通常是 'player'）\n
+        skill_type (str): 技能類型（'laser', 'fire', 'ice'）\n
+        effect_color (tuple): 技能特效顏色 RGB\n
+        enemies (list): 可追蹤的敵人列表\n
+        target_enemy (object): 指定追蹤的特定敵人，如果為None則自動尋找最近敵人\n
+        lifetime (int): 子彈生命時間（毫秒），預設3秒\n
+        """
+        # 調用父類別初始化
+        super().__init__(x, y, angle, speed, damage, owner)
+
+        # 技能追蹤特性
+        self.skill_type = skill_type
+        self.effect_color = effect_color
+        self.enemies_list = enemies  # 存儲敵人列表參考
+        self.target = target_enemy  # 指定的目標敵人
+        self.tracking_speed = 3.0  # 追蹤轉向速度（每幀最大轉向度數）
+        self.max_tracking_distance = 400  # 最大追蹤距離
+        self.pierce_count = 3  # 可穿透敵人數量（增加以攻擊更多敵人）
+
+        # 生命時間管理
+        self.lifetime = lifetime  # 子彈生命時間（毫秒）
+        self.start_time = pygame.time.get_ticks()  # 記錄創建時間
+
+        # 如果沒有指定目標，尋找最近的敵人
+        if self.target is None:
+            self._find_nearest_target()
+
+        # 技能特效軌跡記錄
+        self.trail_positions = []
+        self.max_trail_length = 10  # 增加軌跡長度
+
+    def _find_nearest_target(self):
+        """
+        尋找最近的活著敵人作為追蹤目標\n
+        """
+        if not self.enemies_list:
+            return
+
+        nearest_enemy = None
+        min_distance = float("inf")
+
+        bullet_center_x = self.x + self.size / 2
+        bullet_center_y = self.y + self.size / 2
+
+        for enemy in self.enemies_list:
+            if enemy.is_alive:
+                # 計算敵人中心點
+                enemy_center_x = enemy.x + enemy.width / 2
+                enemy_center_y = enemy.y + enemy.height / 2
+
+                # 計算距離
+                distance = math.sqrt(
+                    (enemy_center_x - bullet_center_x) ** 2
+                    + (enemy_center_y - bullet_center_y) ** 2
+                )
+
+                # 只追蹤在有效範圍內的敵人
+                if distance < self.max_tracking_distance and distance < min_distance:
+                    min_distance = distance
+                    nearest_enemy = enemy
+
+        self.target = nearest_enemy
+
+    def _update_tracking(self):
+        """
+        更新追蹤邏輯 - 調整子彈方向朝向目標\n
+        """
+        if not self.target or not self.target.is_alive:
+            # 目標死亡或消失，重新尋找目標
+            self._find_nearest_target()
+            return
+
+        # 計算子彈和目標的中心點
+        bullet_center_x = self.x + self.size / 2
+        bullet_center_y = self.y + self.size / 2
+        target_center_x = self.target.x + self.target.width / 2
+        target_center_y = self.target.y + self.target.height / 2
+
+        # 檢查目標是否還在追蹤範圍內
+        distance = math.sqrt(
+            (target_center_x - bullet_center_x) ** 2
+            + (target_center_y - bullet_center_y) ** 2
+        )
+
+        if distance > self.max_tracking_distance:
+            # 目標太遠，重新尋找目標
+            self._find_nearest_target()
+            return
+
+        # 計算朝向目標的角度
+        target_angle_rad = math.atan2(
+            target_center_y - bullet_center_y, target_center_x - bullet_center_x
+        )
+
+        # 計算當前移動角度
+        current_angle_rad = math.atan2(self.velocity_y, self.velocity_x)
+
+        # 計算角度差
+        angle_diff = target_angle_rad - current_angle_rad
+
+        # 正規化角度差到 -π 到 π 之間
+        while angle_diff > math.pi:
+            angle_diff -= 2 * math.pi
+        while angle_diff < -math.pi:
+            angle_diff += 2 * math.pi
+
+        # 限制轉向速度
+        max_turn_rad = math.radians(self.tracking_speed)
+        if abs(angle_diff) > max_turn_rad:
+            angle_diff = max_turn_rad if angle_diff > 0 else -max_turn_rad
+
+        # 計算新的移動角度
+        new_angle_rad = current_angle_rad + angle_diff
+
+        # 計算新的速度向量（保持相同速度大小）
+        current_speed = math.sqrt(self.velocity_x**2 + self.velocity_y**2)
+        self.velocity_x = current_speed * math.cos(new_angle_rad)
+        self.velocity_y = current_speed * math.sin(new_angle_rad)
+
+    def update(self, screen_width, screen_height):
+        """
+        更新技能子彈狀態（覆寫父類別方法）\n
+        \n
+        參數:\n
+        screen_width (int): 螢幕寬度\n
+        screen_height (int): 螢幕高度\n
+        \n
+        回傳:\n
+        bool: 子彈是否仍然有效\n
+        """
+        if not self.is_active:
+            return False
+
+        # 檢查生命時間是否已過
+        current_time = pygame.time.get_ticks()
+        if current_time - self.start_time >= self.lifetime:
+            self.is_active = False
+            return False
+
+        # 記錄軌跡位置（用於特效繪製）
+        self.trail_positions.append((self.x + self.size / 2, self.y + self.size / 2))
+        if len(self.trail_positions) > self.max_trail_length:
+            self.trail_positions.pop(0)
+
+        # 更新追蹤邏輯
+        self._update_tracking()
+
+        # 調用父類別的位置更新
+        return super().update(screen_width, screen_height)
+
+    def check_collision(self, target):
+        """
+        檢查碰撞（覆寫父類別方法以支援穿透）\n
+        \n
+        參數:\n
+        target: 目標物件\n
+        \n
+        回傳:\n
+        bool: 是否發生碰撞\n
+        """
+        collision = super().check_collision(target)
+
+        if collision and self.pierce_count > 0:
+            # 穿透攻擊：不立即失效，減少穿透次數
+            self.pierce_count -= 1
+            if self.pierce_count <= 0:
+                self.is_active = False
+            return True
+        elif collision:
+            # 沒有穿透次數，正常失效
+            self.is_active = False
+            return True
+
+        return False
+
+    def draw(self, screen):
+        """
+        繪製技能追蹤子彈（覆寫父類別方法）\n
+        \n
+        參數:\n
+        screen (pygame.Surface): 遊戲畫面物件\n
+        """
+        if not self.is_active:
+            return
+
+        # 繪製軌跡特效
+        self._draw_skill_trail(screen)
+
+        # 繪製子彈本體（比普通子彈大一點）
+        skill_size = self.size + 4
+        skill_x = self.x - 2
+        skill_y = self.y - 2
+
+        # 根據技能類型決定視覺效果
+        if self.skill_type == "laser":
+            # 雷射：明亮的核心 + 光暈效果
+            # 外圈光暈
+            pygame.draw.circle(
+                screen,
+                tuple(min(255, c + 100) for c in self.effect_color),
+                (int(skill_x + skill_size / 2), int(skill_y + skill_size / 2)),
+                skill_size // 2 + 3,
+            )
+            # 內核
+            pygame.draw.circle(
+                screen,
+                self.effect_color,
+                (int(skill_x + skill_size / 2), int(skill_y + skill_size / 2)),
+                skill_size // 2,
+            )
+
+        elif self.skill_type == "fire":
+            # 火焰：橙紅漸變 + 火花效果
+            # 外層火焰
+            fire_outer = (255, 69, 0)  # 橙紅色
+            fire_inner = (255, 255, 0)  # 黃色
+
+            pygame.draw.circle(
+                screen,
+                fire_outer,
+                (int(skill_x + skill_size / 2), int(skill_y + skill_size / 2)),
+                skill_size // 2 + 2,
+            )
+            pygame.draw.circle(
+                screen,
+                fire_inner,
+                (int(skill_x + skill_size / 2), int(skill_y + skill_size / 2)),
+                skill_size // 2 - 1,
+            )
+
+        elif self.skill_type == "ice":
+            # 冰凍：藍白漸變 + 冰晶效果
+            ice_outer = (100, 149, 237)  # 藍色
+            ice_inner = (230, 230, 250)  # 淡紫白
+
+            # 六角形冰晶形狀
+            center_x = int(skill_x + skill_size / 2)
+            center_y = int(skill_y + skill_size / 2)
+            radius = skill_size // 2
+
+            # 畫六角形
+            points = []
+            for i in range(6):
+                angle = i * 60
+                x = center_x + math.cos(math.radians(angle)) * radius
+                y = center_y + math.sin(math.radians(angle)) * radius
+                points.append((int(x), int(y)))
+
+            if len(points) > 2:
+                pygame.draw.polygon(screen, ice_outer, points)
+
+            # 內部圓形
+            pygame.draw.circle(screen, ice_inner, (center_x, center_y), radius - 2)
+
+        # 繪製白色邊框增加對比度
+        pygame.draw.circle(
+            screen,
+            COLORS["white"],
+            (int(skill_x + skill_size / 2), int(skill_y + skill_size / 2)),
+            skill_size // 2,
+            1,
+        )
+
+    def _draw_skill_trail(self, screen):
+        """
+        繪製技能軌跡特效\n
+        \n
+        參數:\n
+        screen (pygame.Surface): 遊戲畫面物件\n
+        """
+        if len(self.trail_positions) < 2:
+            return
+
+        # 根據技能類型繪製不同的軌跡
+        for i in range(len(self.trail_positions) - 1):
+            # 計算軌跡點的透明度（越舊越透明）
+            alpha_factor = i / len(self.trail_positions)
+            trail_alpha = int(alpha_factor * 150)
+
+            # 創建帶透明度的顏色
+            trail_color = (*self.effect_color, trail_alpha)
+
+            # 軌跡點大小（越舊越小）
+            trail_size = int(3 + alpha_factor * 5)
+
+            # 繪製軌跡點
+            trail_x, trail_y = self.trail_positions[i]
+
+            if self.skill_type == "laser":
+                # 雷射軌跡：直線光束
+                if i > 0:
+                    prev_x, prev_y = self.trail_positions[i - 1]
+                    pygame.draw.line(
+                        screen,
+                        self.effect_color,
+                        (int(prev_x), int(prev_y)),
+                        (int(trail_x), int(trail_y)),
+                        max(1, trail_size // 2),
+                    )
+            else:
+                # 火焰和冰凍軌跡：點狀軌跡
+                pygame.draw.circle(
+                    screen, self.effect_color, (int(trail_x), int(trail_y)), trail_size
+                )
+
+
 ######################子彈管理系統######################
 
 
@@ -231,6 +585,55 @@ class BulletManager:
         bullet = Bullet(x, y, angle, speed, damage, owner)
         self.bullets.append(bullet)
         return bullet
+
+    def create_skill_bullet(
+        self,
+        x,
+        y,
+        angle,
+        speed,
+        damage,
+        owner,
+        skill_type,
+        effect_color,
+        enemies,
+        target_enemy=None,
+        lifetime=3000,
+    ):
+        """
+        創建技能追蹤子彈\n
+        \n
+        參數:\n
+        x (float): 初始 X 座標位置\n
+        y (float): 初始 Y 座標位置\n
+        angle (float): 發射角度（度數）\n
+        speed (float): 子彈移動速度\n
+        damage (int): 子彈傷害值\n
+        owner (str): 發射者類型\n
+        skill_type (str): 技能類型（'laser', 'fire', 'ice'）\n
+        effect_color (tuple): 技能特效顏色\n
+        enemies (list): 可追蹤的敵人列表（保留以便向後相容）\n
+        target_enemy (Enemy): 要追蹤的特定敵人物件（新參數）\n
+        lifetime (int): 子彈生命時間（毫秒），預設3秒\n
+        \n
+        回傳:\n
+        SkillBullet: 新創建的技能子彈物件\n
+        """
+        skill_bullet = SkillBullet(
+            x,
+            y,
+            angle,
+            speed,
+            damage,
+            owner,
+            skill_type,
+            effect_color,
+            enemies,
+            target_enemy,
+            lifetime,
+        )
+        self.bullets.append(skill_bullet)
+        return skill_bullet
 
     def create_scatter_shot(
         self,

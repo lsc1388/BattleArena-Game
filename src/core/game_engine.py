@@ -308,32 +308,12 @@ class GameEngine:
     def _update_skill_effects(self):
         """
         更新技能持續效果\n
+        \n
+        注意：新版技能系統使用追蹤子彈，不再需要持續效果邏輯\n
+        保留此方法用於向後相容性\n
         """
-        if not self.player or not self.player.is_skill_active():
-            return
-
-        current_time = pygame.time.get_ticks()
-
-        if current_time - self.last_skill_damage_time >= 1000:
-            skill_info = self.player.get_active_skill_info()
-            if skill_info:
-                enemies_hit = 0
-                for enemy in self.enemies:
-                    if enemy.is_alive:
-                        damage_per_second = skill_info["damage"] // 3
-                        if enemy.take_damage(damage_per_second):
-                            enemies_hit += 1
-                        else:
-                            enemies_hit += 1
-
-                if enemies_hit > 0:
-                    self.game_ui.add_message(
-                        f"技能持續傷害：{enemies_hit} 個敵人",
-                        "info",
-                        skill_info["effect_color"],
-                    )
-
-                self.last_skill_damage_time = current_time
+        # 技能現在通過追蹤子彈實現，不再需要持續效果處理
+        pass
 
     def _manage_enemy_spawning(self):
         """
@@ -548,6 +528,7 @@ class GameEngine:
             self.game_stats,
             self.current_level,
             self.level_enemies_killed,
+            self.powerup_manager,
         )
 
     def _draw_game_over(self):

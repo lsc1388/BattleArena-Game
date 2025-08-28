@@ -246,9 +246,10 @@ class EventHandler:
             self.game_engine.state_manager.change_state("menu")
 
     def _handle_skill_activation(self):
-        """處理技能啟動"""
+        """處理技能啟動 - 創建自動追蹤敵人的技能子彈"""
         if self.game_engine.player:
-            skill_result = self.game_engine.player.use_skill()
+            # 傳遞敵人列表給技能系統
+            skill_result = self.game_engine.player.use_skill(self.game_engine.enemies)
             if skill_result["success"]:
                 # 顯示技能啟動訊息
                 skill_message = f"{skill_result['skill_name']}啟動！"
@@ -262,6 +263,24 @@ class EventHandler:
                     "damage",
                     COLORS["red"],
                 )
+
+                # 創建技能追蹤子彈（支援多目標）
+                bullets_data = skill_result["bullets_data"]
+                for bullet_data in bullets_data:
+                    self.game_engine.bullet_manager.create_skill_bullet(
+                        bullet_data["x"],
+                        bullet_data["y"],
+                        bullet_data["angle"],
+                        bullet_data["speed"],
+                        bullet_data["damage"],
+                        "player",
+                        bullet_data["skill_type"],
+                        bullet_data["effect_color"],
+                        bullet_data["enemies"],
+                        bullet_data.get("target_enemy"),  # 新參數：特定目標敵人
+                        bullet_data.get("lifetime", 3000),  # 新參數：生命時間，預設3秒
+                    )
+
                 # 記錄技能啟動
                 self.game_engine.last_skill_activation = pygame.time.get_ticks()
             else:

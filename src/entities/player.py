@@ -425,19 +425,24 @@ class Player:
 
         return shot_data
 
-    def use_skill(self):
+    def use_skill(self, enemies_list=None):
         """
-        使用角色專屬技能\n
+        使用角色專屬技能 - 自動追蹤所有AI敵人\n
         \n
         不同角色的技能效果：\n
-        - 貓：雷射技能 - 高精準度攻擊\n
-        - 狗：火焰技能 - 持續燃燒傷害\n
-        - 狼：冰凍技能 - 減緩敵人並造成傷害\n
+        - 貓：雷射技能 - 高精準度追蹤攻擊所有敵人\n
+        - 狗：火焰技能 - 持續燃燒追蹤攻擊所有敵人\n
+        - 狼：冰凍技能 - 減緩所有敵人並造成追蹤傷害\n
         \n
         技能統一設定：\n
         - 冷卻時間：10秒\n
         - 生命值消耗：10%當前最大生命值\n
-        - 攻擊範圍：整個視窗\n
+        - 自動追蹤所有活著的敵人\n
+        - 發射多個追蹤子彈攻擊所有目標\n
+        - 技能效果持續3秒\n
+        \n
+        參數:\n
+        enemies_list (list): 可追蹤的敵人列表\n
         \n
         回傳:\n
         dict: 技能使用結果，包含是否成功和技能資訊\n
@@ -457,6 +462,13 @@ class Player:
         if self.health <= skill_cost:
             return {"success": False, "reason": "生命值不足"}
 
+        # 檢查是否有敵人可以攻擊
+        alive_enemies = (
+            [enemy for enemy in enemies_list if enemy.is_alive] if enemies_list else []
+        )
+        if not alive_enemies:
+            return {"success": False, "reason": "沒有可攻擊的敵人"}
+
         # 消耗生命值
         self.health -= skill_cost
 
@@ -464,15 +476,38 @@ class Player:
         if self.health <= 0:
             self.health = 1
 
-        # 啟動技能效果
+        # 記錄技能使用時間
         self.last_skill_time = current_time
-        self.active_skill = {
-            "type": skill_config["type"],
-            "start_time": current_time,
-            "duration": skill_config["duration"],
-            "damage": skill_config["damage"],
-            "effect_color": skill_config["effect_color"],
-        }
+
+        # 計算玩家中心點作為發射起點
+        start_x = self.x + self.width / 2
+        start_y = self.y
+
+        # 創建針對每個敵人的子彈資料列表
+        bullets_data = []
+        for i, enemy in enumerate(alive_enemies):
+            # 計算朝向每個敵人的初始角度
+            enemy_center_x = enemy.x + enemy.width / 2
+            enemy_center_y = enemy.y + enemy.height / 2
+
+            dx = enemy_center_x - start_x
+            dy = enemy_center_y - start_y
+            initial_angle = math.degrees(math.atan2(dy, dx)) + 90  # +90調整為向上為0度
+
+            bullet_data = {
+                "x": start_x,
+                "y": start_y,
+                "angle": initial_angle,
+                "speed": 200,  # 技能子彈速度
+                "damage": skill_config["damage"],
+                "skill_type": skill_config["type"],
+                "effect_color": skill_config["effect_color"],
+                "target_enemy": enemy,  # 指定這個子彈追蹤的特定敵人
+                "enemies": alive_enemies,  # 完整敵人列表，用於重新尋找目標
+                "lifetime": 3000,  # 3秒生命時間
+                "start_time": current_time,
+            }
+            bullets_data.append(bullet_data)
 
         # 根據角色類型返回不同的技能效果
         return {
@@ -482,10 +517,12 @@ class Player:
             "skill_name": skill_config["name"],
             "damage": skill_config["damage"],
             "effect_color": skill_config["effect_color"],
-            "range": "fullscreen",  # 全螢幕範圍
+            "range": "auto_tracking_all",  # 追蹤所有敵人
             "health_cost": skill_cost,
             "description": skill_config["description"],
-            "duration": skill_config["duration"],
+            "duration": 3000,  # 3秒持續時間
+            "targets_count": len(alive_enemies),
+            "bullets_data": bullets_data,  # 多個子彈的資料
         }
 
     def apply_powerup(self, powerup_type):
@@ -602,94 +639,16 @@ class Player:
         """
         檢查敵人是否在技能攻擊範圍內\n
         \n
-        根據滑鼠控制的技能方向，判斷敵人是否會被技能影響\n
+        注意：新版技能系統使用自動追蹤子彈，此方法已廢棄\n
+        保留用於向後相容性，總是回傳 False\n
         \n
         參數:\n
         enemy: 敵人物件\n
         \n
         回傳:\n
-        bool: 敵人是否在技能範圍內\n
+        bool: 總是回傳 False（技能現在通過追蹤子彈實現）\n
         """
-        if not self.active_skill:
-            return False
-
-        # 計算玩家中心點
-        player_center_x = self.x + self.width // 2
-        player_center_y = self.y + self.height // 2
-
-        # 計算敵人中心點
-        enemy_center_x = enemy.x + enemy.width // 2
-        enemy_center_y = enemy.y + enemy.height // 2
-
-        # 計算滑鼠方向
-        mouse_x, mouse_y = self.mouse_position
-
-        skill_type = self.active_skill["type"]
-
-        if skill_type == "laser":
-            # 雷射技能：檢查敵人是否在雷射光束路徑上
-            # 計算從玩家到滑鼠的方向向量
-            direction_x = mouse_x - player_center_x
-            direction_y = mouse_y - player_center_y
-            direction_length = math.sqrt(direction_x**2 + direction_y**2)
-
-            if direction_length == 0:
-                return False
-
-            # 正規化方向向量
-            direction_x /= direction_length
-            direction_y /= direction_length
-
-            # 計算敵人相對於玩家的向量
-            to_enemy_x = enemy_center_x - player_center_x
-            to_enemy_y = enemy_center_y - player_center_y
-
-            # 計算敵人在光束方向上的投影
-            projection = to_enemy_x * direction_x + to_enemy_y * direction_y
-
-            # 如果投影為負，敵人在玩家後方
-            if projection < 0:
-                return False
-
-            # 計算敵人到光束的垂直距離
-            perpendicular_distance = abs(
-                to_enemy_x * (-direction_y) + to_enemy_y * direction_x
-            )
-
-            # 雷射光束寬度約為20像素
-            return perpendicular_distance <= 20
-
-        elif skill_type == "fire":
-            # 火焰技能：檢查敵人是否在玩家到滑鼠路徑的擴散範圍內
-            # 計算敵人到路徑的距離
-            mouse_distance = math.sqrt(
-                (mouse_x - player_center_x) ** 2 + (mouse_y - player_center_y) ** 2
-            )
-
-            if mouse_distance == 0:
-                return False
-
-            # 使用點到線段的距離公式
-            A = mouse_y - player_center_y
-            B = player_center_x - mouse_x
-            C = mouse_x * player_center_y - player_center_x * mouse_y
-
-            distance_to_line = abs(
-                A * enemy_center_x + B * enemy_center_y + C
-            ) / math.sqrt(A**2 + B**2)
-
-            # 火焰擴散範圍約為60像素
-            return distance_to_line <= 60
-
-        elif skill_type == "ice":
-            # 冰凍技能：檢查敵人是否在滑鼠位置附近
-            distance_to_mouse = math.sqrt(
-                (enemy_center_x - mouse_x) ** 2 + (enemy_center_y - mouse_y) ** 2
-            )
-
-            # 冰凍範圍約為80像素
-            return distance_to_mouse <= 80
-
+        # 技能現在通過追蹤子彈實現，不再使用範圍檢測
         return False
 
     def take_damage(self, damage):
@@ -817,183 +776,8 @@ class Player:
                 border_width,
             )
 
-        # 繪製技能視覺效果
-        if self.active_skill:
-            self._draw_skill_effects(screen)
-
         # 在角色上方顯示角色類型標識（簡化的圖示）
         self._draw_character_indicator(screen)
-
-    def _draw_skill_effects(self, screen):
-        """
-        繪製技能視覺效果\n
-        \n
-        根據技能類型繪製不同的視覺效果，技能攻擊方向跟隨滑鼠位置：\n
-        - 雷射：從玩家位置朝滑鼠方向發射光束\n
-        - 火焰：在玩家與滑鼠方向之間顯示火焰粒子\n
-        - 冰凍：在滑鼠方向顯示冰晶效果\n
-        \n
-        參數:\n
-        screen (pygame.Surface): 遊戲畫面物件\n
-        """
-        if not self.active_skill:
-            return
-
-        skill_type = self.active_skill["type"]
-        effect_color = self.active_skill["effect_color"]
-
-        # 計算玩家中心點
-        player_center_x = self.x + self.width // 2
-        player_center_y = self.y + self.height // 2
-
-        # 計算滑鼠方向
-        mouse_x, mouse_y = self.mouse_position
-        direction_x = mouse_x - player_center_x
-        direction_y = mouse_y - player_center_y
-
-        # 計算角度和距離
-        distance = math.sqrt(direction_x**2 + direction_y**2)
-        if distance > 0:
-            direction_x /= distance
-            direction_y /= distance
-
-        if skill_type == "laser":
-            # 雷射效果：從玩家中心朝滑鼠方向發射光束
-
-            # 畫多條雷射光束產生閃爍效果
-            for i in range(3):
-                beam_width = 5 + i * 2
-                beam_color = tuple(max(0, c - i * 50) for c in effect_color)
-
-                # 主光束朝滑鼠方向
-                if distance > 0:
-                    # 光束延伸到螢幕邊界
-                    beam_length = 800  # 足夠長的光束
-                    end_x = player_center_x + direction_x * beam_length
-                    end_y = player_center_y + direction_y * beam_length
-
-                    pygame.draw.line(
-                        screen,
-                        beam_color,
-                        (player_center_x, player_center_y),
-                        (int(end_x), int(end_y)),
-                        beam_width,
-                    )
-
-                # 在滑鼠位置畫光束聚焦點
-                focus_radius = 15 + i * 5
-                pygame.draw.circle(
-                    screen, beam_color, (int(mouse_x), int(mouse_y)), focus_radius, 3
-                )
-
-        elif skill_type == "fire":
-            # 火焰效果：在玩家與滑鼠方向之間顯示火焰粒子
-            import random
-
-            # 沿著玩家到滑鼠的路徑生成火焰粒子
-            for i in range(12):
-                # 在路徑上隨機分布火焰
-                t = random.uniform(0, 1)  # 路徑上的位置比例
-                spread = random.uniform(-30, 30)  # 左右擴散
-
-                flame_x = (
-                    player_center_x + direction_x * distance * t + direction_y * spread
-                )
-                flame_y = (
-                    player_center_y + direction_y * distance * t - direction_x * spread
-                )
-
-                # 不同大小的火焰粒子
-                for size in [8, 5, 3]:
-                    fire_color = (255, max(0, 165 - size * 20), max(0, size * 10))
-                    pygame.draw.circle(
-                        screen, fire_color, (int(flame_x), int(flame_y)), size
-                    )
-
-        elif skill_type == "ice":
-            # 冰凍效果：在滑鼠位置顯示冰晶
-
-            # 畫六角形冰晶在滑鼠位置
-            for radius in [25, 35, 45]:
-                points = []
-                for i in range(6):
-                    angle = i * 60 + (pygame.time.get_ticks() / 50) % 360
-                    x = mouse_x + math.cos(math.radians(angle)) * radius
-                    y = mouse_y + math.sin(math.radians(angle)) * radius
-                    points.append((int(x), int(y)))
-
-                # 畫冰晶邊框
-                ice_color = tuple(min(255, c + 50) for c in effect_color)
-                if len(points) > 2:
-                    pygame.draw.polygon(screen, ice_color, points, 2)
-
-            # 畫從玩家到滑鼠位置的冰霜路徑
-            steps = int(distance / 20)  # 每20像素一個冰霜點
-            for i in range(steps):
-                t = i / max(1, steps - 1)
-                frost_x = player_center_x + direction_x * distance * t
-                frost_y = player_center_y + direction_y * distance * t
-
-                pygame.draw.circle(
-                    screen, effect_color, (int(frost_x), int(frost_y)), 3
-                )
-
-            # 畫冰晶中心在滑鼠位置
-            pygame.draw.circle(screen, effect_color, (int(mouse_x), int(mouse_y)), 8)
-
-    def _draw_mouse_control_indicator(self, screen):
-        """
-        繪製滑鼠控制指示器\n
-        \n
-        當技能允許滑鼠控制時，在玩家周圍顯示特殊邊框和文字提示\n
-        \n
-        參數:\n
-        screen (pygame.Surface): 遊戲畫面物件\n
-        """
-        # 在玩家周圍畫一個閃爍的邊框，表示可以用滑鼠控制
-        time_factor = pygame.time.get_ticks() / 300  # 控制閃爍速度
-        alpha = int((math.sin(time_factor) + 1) * 127.5)  # 透明度在0-255之間變化
-
-        # 創建一個帶透明度的表面
-        indicator_surface = pygame.Surface(
-            (self.width + 20, self.height + 20), pygame.SRCALPHA
-        )
-
-        # 繪製閃爍的邊框
-        indicator_color = (*self.active_skill["effect_color"], alpha)
-        pygame.draw.rect(
-            indicator_surface,
-            indicator_color,
-            (0, 0, self.width + 20, self.height + 20),
-            5,
-        )
-
-        # 將指示器繪製到螢幕上
-        screen.blit(indicator_surface, (self.x - 10, self.y - 10))
-
-        # 在玩家上方顯示 "滑鼠控制" 文字
-        from src.utils.font_manager import font_manager
-
-        control_text = "滑鼠控制"
-        text_surface = font_manager.render_text(control_text, "small", COLORS["white"])
-        text_x = self.x + self.width // 2 - text_surface.get_width() // 2
-        text_y = self.y - 35
-
-        # 繪製文字背景
-        text_bg = pygame.Surface(
-            (text_surface.get_width() + 10, text_surface.get_height() + 5),
-            pygame.SRCALPHA,
-        )
-        pygame.draw.rect(
-            text_bg,
-            (0, 0, 0, 180),
-            (0, 0, text_bg.get_width(), text_bg.get_height()),
-            border_radius=5,
-        )
-        screen.blit(text_bg, (text_x - 5, text_y - 2))
-
-        # 繪製文字
-        screen.blit(text_surface, (text_x, text_y))
 
     def _draw_character_indicator(self, screen):
         """
