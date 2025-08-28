@@ -114,6 +114,11 @@ POWERUP_EFFECTS = {
         "weapon_unlock": "submachinegun",
         "ammo_bonus": 120,  # 額外彈藥
     },
+    "health_pack": {
+        "name": "補血包",
+        "instant": True,  # 立即效果
+        "heal_amount": 50,  # 補血量
+    },
 }
 
 # AI 難度設定

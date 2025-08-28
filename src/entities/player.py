@@ -491,6 +491,11 @@ class Player:
                 weapon_config = WEAPON_CONFIGS[weapon_type]
                 weapon_state["current_ammo"] = weapon_config["max_ammo"]
                 weapon_state["total_ammo"] = weapon_config["max_ammo"] * 3
+        elif powerup_type == "health_pack":
+            # 立即回復血量
+            effect_config = POWERUP_EFFECTS[powerup_type]
+            heal_amount = effect_config["heal_amount"]
+            self.heal(heal_amount)
         elif powerup_type in ["machinegun_powerup", "submachinegun_powerup"]:
             # 武器解鎖效果
             effect_config = POWERUP_EFFECTS[powerup_type]

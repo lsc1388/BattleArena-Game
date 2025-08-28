@@ -187,6 +187,12 @@ class PowerUp:
             effect_color = COLORS["blue"]
             self._draw_weapon_effect(screen, draw_x, draw_y, main_color, effect_color)
 
+        elif self.powerup_type == "health_pack":
+            # 補血包：紅色系
+            main_color = COLORS["red"]
+            effect_color = COLORS["white"]
+            self._draw_health_effect(screen, draw_x, draw_y, main_color, effect_color)
+
         # 繪製主體方塊
         pygame.draw.rect(screen, main_color, (draw_x, draw_y, self.size, self.size))
 
@@ -250,6 +256,43 @@ class PowerUp:
         # 繪製發光效果
         glow_radius = self.size // 2 + int(abs(math.sin(self.pulse_timer * 0.15)) * 8)
         pygame.draw.circle(screen, effect_color, (center_x, center_y), glow_radius, 1)
+
+    def _draw_health_effect(self, screen, x, y, main_color, effect_color):
+        """繪製補血包的十字效果"""
+        center_x = int(x + self.size // 2)
+        center_y = int(y + self.size // 2)
+
+        # 繪製十字架標誌
+        cross_size = self.size // 3
+        cross_thickness = 3
+
+        # 垂直線
+        pygame.draw.rect(
+            screen,
+            effect_color,
+            (
+                center_x - cross_thickness // 2,
+                center_y - cross_size,
+                cross_thickness,
+                cross_size * 2,
+            ),
+        )
+
+        # 水平線
+        pygame.draw.rect(
+            screen,
+            effect_color,
+            (
+                center_x - cross_size,
+                center_y - cross_thickness // 2,
+                cross_size * 2,
+                cross_thickness,
+            ),
+        )
+
+        # 繪製脈衝光環
+        pulse_radius = self.size // 2 + int(abs(math.sin(self.pulse_timer * 0.12)) * 6)
+        pygame.draw.circle(screen, main_color, (center_x, center_y), pulse_radius, 2)
 
     def get_rect(self):
         """
@@ -518,6 +561,7 @@ class PowerUpManager:
             "scatter_shot": 0,
             "machinegun_powerup": 0,
             "submachinegun_powerup": 0,
+            "health_pack": 0,
         }
 
         for powerup in self.powerups:
