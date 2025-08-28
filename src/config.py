@@ -184,6 +184,7 @@ CHARACTER_CONFIGS = {
         "name": "貓",
         "emoji": "🐱",
         "color": (255, 165, 0),  # 橙色
+        "image_path": "assets/characters/cat.jpg",  # 角色圖片路徑
         "attributes": {
             "attack_power": 1.3,  # 高攻擊力（130%）
             "fire_rate": 0.7,  # 低射速（70%）
@@ -205,6 +206,7 @@ CHARACTER_CONFIGS = {
         "name": "狗",
         "emoji": "🐶",
         "color": (139, 69, 19),  # 棕色
+        "image_path": "assets/characters/dog.jpg",  # 角色圖片路徑
         "attributes": {
             "attack_power": 1.0,  # 平衡攻擊力（100%）
             "fire_rate": 1.0,  # 平衡射速（100%）
@@ -226,6 +228,7 @@ CHARACTER_CONFIGS = {
         "name": "狼",
         "emoji": "🐺",
         "color": (105, 105, 105),  # 灰色
+        "image_path": "assets/characters/wolf.jpg",  # 角色圖片路徑
         "attributes": {
             "attack_power": 0.8,  # 低攻擊力（80%）
             "fire_rate": 1.5,  # 高射速（150%）

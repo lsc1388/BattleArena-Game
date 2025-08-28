@@ -3,6 +3,7 @@ import pygame
 import math
 from src.config import *
 from src.utils.font_manager import font_manager
+from src.utils.image_manager import image_manager
 
 ######################選擇介面類別######################
 
@@ -277,22 +278,43 @@ class SelectionUI:
         pygame.draw.rect(screen, card_color, card_rect)
         pygame.draw.rect(screen, border_color, card_rect, border_width)
 
-        # 角色emoji/圖示 (使用幾何形狀代替)
-        icon_size = 60
-        icon_x = x + card_width // 2 - icon_size // 2
-        icon_y = y + 20
-        pygame.draw.circle(
-            screen,
-            character_config["color"],
-            (icon_x + icon_size // 2, icon_y + icon_size // 2),
-            icon_size // 2,
-        )
+        # 取得角色類型
+        character_type = None
+        for char_type, config in CHARACTER_CONFIGS.items():
+            if config == character_config:
+                character_type = char_type
+                break
+
+        # 角色圖片 (使用真實圖片)
+        if character_type:
+            character_image = image_manager.get_character_image_for_selection(
+                character_type
+            )
+
+            # 計算圖片位置（置中顯示）
+            image_size = 120
+            image_x = x + card_width // 2 - image_size // 2
+            image_y = y + 10
+
+            # 繪製角色圖片
+            screen.blit(character_image, (image_x, image_y))
+        else:
+            # 降級顯示：使用幾何形狀代替
+            icon_size = 60
+            icon_x = x + card_width // 2 - icon_size // 2
+            icon_y = y + 20
+            pygame.draw.circle(
+                screen,
+                character_config["color"],
+                (icon_x + icon_size // 2, icon_y + icon_size // 2),
+                icon_size // 2,
+            )
 
         # 角色名稱
         name_surface = font_manager.render_text(
             character_config["name"], "medium", COLORS["black"]
         )
-        name_rect = name_surface.get_rect(center=(x + card_width // 2, y + 110))
+        name_rect = name_surface.get_rect(center=(x + card_width // 2, y + 140))
         screen.blit(name_surface, name_rect)
 
         # 技能資訊
@@ -300,35 +322,20 @@ class SelectionUI:
         skill_surface = font_manager.render_text(
             skill_name, "small", COLORS["dark_gray"]
         )
-        skill_rect = skill_surface.get_rect(center=(x + card_width // 2, y + 130))
+        skill_rect = skill_surface.get_rect(center=(x + card_width // 2, y + 160))
         screen.blit(skill_surface, skill_rect)
 
         # 技能描述
         skill_desc = character_config["skill"]["description"]
         desc_surface = font_manager.render_text(skill_desc, "tiny", COLORS["dark_gray"])
-        desc_rect = desc_surface.get_rect(center=(x + card_width // 2, y + 150))
+        desc_rect = desc_surface.get_rect(center=(x + card_width // 2, y + 175))
         screen.blit(desc_surface, desc_rect)
 
         # 技能傷害資訊
         damage_text = f"傷害: {character_config['skill']['damage']}"
         damage_surface = font_manager.render_text(damage_text, "tiny", COLORS["red"])
-        damage_rect = damage_surface.get_rect(center=(x + card_width // 2, y + 165))
+        damage_rect = damage_surface.get_rect(center=(x + card_width // 2, y + 190))
         screen.blit(damage_surface, damage_rect)
-
-        # 角色特性資訊
-        attributes = character_config["attributes"]
-        if character_config["name"] == "貓":
-            trait_text = "高攻擊 / 低射速"
-        elif character_config["name"] == "狗":
-            trait_text = "平衡型角色"
-        elif character_config["name"] == "狼":
-            trait_text = "高射速 / 低攻擊"
-        else:
-            trait_text = "均衡型"
-
-        trait_surface = font_manager.render_text(trait_text, "tiny", COLORS["blue"])
-        trait_rect = trait_surface.get_rect(center=(x + card_width // 2, y + 180))
-        screen.blit(trait_surface, trait_rect)
 
         # 選中提示
         if is_selected:
@@ -336,7 +343,7 @@ class SelectionUI:
             select_surface = font_manager.render_text(
                 select_text, "tiny", COLORS["green"]
             )
-            select_rect = select_surface.get_rect(center=(x + card_width // 2, y + 200))
+            select_rect = select_surface.get_rect(center=(x + card_width // 2, y + 205))
             screen.blit(select_surface, select_rect)
 
     def _draw_scene_card(self, screen, scene_config, x, y, is_selected):

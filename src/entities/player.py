@@ -2,6 +2,7 @@
 import pygame
 import math
 from src.config import *
+from src.utils.image_manager import image_manager
 
 ######################物件類別######################
 
@@ -84,6 +85,11 @@ class Player:
 
         # 輸入狀態追蹤
         self.keys_pressed = set()
+
+        # 載入角色圖片
+        self.character_image = image_manager.get_character_image_for_game(
+            self.character_type
+        )
 
     def _init_weapons(self):
         """
@@ -667,44 +673,49 @@ class Player:
         """
         繪製玩家角色\n
         \n
-        根據角色類型和當前狀態顯示不同顏色：\n
-        - 角色顏色：依據角色類型\n
-        - 填裝中：黃色\n
-        - 技能狀態：紫色\n
-        - 生命值低：紅色\n
+        使用真實角色圖片，並根據角色狀態添加邊框效果：\n
+        - 填裝中：黃色邊框\n
+        - 技能狀態：紫色邊框\n
+        - 生命值低：紅色邊框\n
         \n
         參數:\n
         screen (pygame.Surface): 遊戲畫面物件\n
         """
-        # 根據狀態決定顏色
-        base_color = self.character_config["color"]  # 角色基本顏色
-        color = base_color
+        # 繪製角色圖片
+        if self.character_image:
+            screen.blit(self.character_image, (self.x, self.y))
+        else:
+            # 降級顯示：使用幾何形狀
+            base_color = self.character_config["color"]
+            pygame.draw.rect(
+                screen, base_color, (self.x, self.y, self.width, self.height)
+            )
+
+        # 根據狀態決定邊框顏色
+        border_color = None
+        border_width = 2
 
         if self.active_skill:
-            # 技能啟用時顯示技能效果顏色
-            color = self.active_skill["effect_color"]
-        elif "skill_boost" in self.powerups:
-            color = COLORS["purple"]  # 技能狀態用紫色
-        elif self.is_reloading:
-            color = COLORS["yellow"]  # 填裝中用黃色
-        elif self.health < self.max_health * 0.3:
-            color = COLORS["red"]  # 血量低用紅色
-
-        # 畫玩家方塊
-        pygame.draw.rect(screen, color, (self.x, self.y, self.width, self.height))
-
-        # 畫邊框讓玩家更明顯
-        border_color = COLORS["white"]
-
-        # 如果正在使用技能，邊框顯示技能顏色
-        if self.active_skill:
+            # 技能啟用時顯示技能效果顏色邊框
             border_color = self.active_skill["effect_color"]
-        elif "skill_effect" in self.powerups:
-            border_color = self.character_config["skill"]["effect_color"]
+            border_width = 3
+        elif "skill_boost" in self.powerups:
+            border_color = COLORS["purple"]  # 技能狀態用紫色
+        elif self.is_reloading:
+            border_color = COLORS["yellow"]  # 填裝中用黃色
+        elif self.health < self.max_health * 0.3:
+            border_color = COLORS["red"]  # 血量低用紅色
+        else:
+            border_color = COLORS["white"]  # 預設白色邊框
 
-        pygame.draw.rect(
-            screen, border_color, (self.x, self.y, self.width, self.height), 2
-        )
+        # 繪製邊框
+        if border_color:
+            pygame.draw.rect(
+                screen,
+                border_color,
+                (self.x, self.y, self.width, self.height),
+                border_width,
+            )
 
         # 繪製技能視覺效果
         if self.active_skill:
@@ -766,7 +777,6 @@ class Player:
 
         elif skill_type == "fire":
             # 火焰效果：在玩家周圍顯示火焰粒子
-            import math
             import random
 
             player_center_x = self.x + self.width // 2
@@ -789,8 +799,6 @@ class Player:
 
         elif skill_type == "ice":
             # 冰凍效果：在玩家周圍顯示冰晶
-            import math
-
             player_center_x = self.x + self.width // 2
             player_center_y = self.y + self.height // 2
 
