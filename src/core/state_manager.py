@@ -41,6 +41,9 @@ class StateManager:
             ],
             GAME_STATES["scene_select"]: [
                 GAME_STATES["difficulty_select"],
+                GAME_STATES["countdown"],
+            ],
+            GAME_STATES["countdown"]: [
                 GAME_STATES["playing"],
             ],
             GAME_STATES["playing"]: [
@@ -159,6 +162,11 @@ class StateManager:
             # 進入場景選擇時設置UI
             if hasattr(self.game_engine, "selection_ui"):
                 self.game_engine.selection_ui.current_selection_type = "scene"
+
+        elif state == GAME_STATES["countdown"]:
+            # 進入倒數計時狀態時初始化倒數計時器
+            self.game_engine.countdown_start_time = pygame.time.get_ticks()
+            self.game_engine.countdown_duration = 3000  # 3秒倒數（毫秒）
 
         elif state == GAME_STATES["playing"]:
             # 進入遊戲時記錄開始時間

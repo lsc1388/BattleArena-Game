@@ -157,7 +157,7 @@ FONT_CONFIGS = {
         "Arial Unicode MS",  # 通用字體
     ],
     "fallback_font": None,  # 系統預設字體
-    "sizes": {"large": 36, "medium": 24, "small": 18, "tiny": 14},
+    "sizes": {"xlarge": 72, "large": 36, "medium": 24, "small": 18, "tiny": 14},
 }
 
 # 按鍵設定
@@ -341,6 +341,7 @@ GAME_STATES = {
     "character_select": "character_select",
     "difficulty_select": "difficulty_select",  # 新增難度選擇狀態
     "scene_select": "scene_select",
+    "countdown": "countdown",  # 新增倒數計時狀態
     "playing": "playing",
     "game_over": "game_over",
     "paused": "paused",
@@ -365,6 +366,40 @@ DIFFICULTY_CONFIGS = {
         "emoji": "😤",
         "description": "高挑戰性，適合經驗豐富的玩家",
         "multiplier": 1.3,  # 敵人生命值倍率
+    },
+}
+
+# 音效設定
+SOUND_CONFIGS = {
+    "race_start": {
+        "file_path": "音效/race-start-beeps-125125.mp3",
+        "volume": 0.7,  # 音量 (0.0 到 1.0)
+        "description": "場景選擇完成後的開始音效",
+    },
+    "shotgun": {
+        "file_path": "音效/shotgun-shooting-things-105837.mp3",
+        "volume": 0.8,
+        "description": "霰彈槍射擊音效",
+    },
+    "plasma_gun": {
+        "file_path": "音效/plasma-gun-fire-162136.mp3",
+        "volume": 0.6,
+        "description": "步槍和手槍射擊音效",
+    },
+    "victory": {
+        "file_path": "音效/xm2855.wav",
+        "volume": 0.8,
+        "description": "勝利音效 - 遊戲獲勝時播放",
+    },
+    "death": {
+        "file_path": "音效/8616.wav",
+        "volume": 0.7,
+        "description": "死亡音效 - 玩家死亡時播放",
+    },
+    "skill_use": {
+        "file_path": "音效/11745.wav",
+        "volume": 0.6,
+        "description": "技能音效 - 使用技能時播放",
     },
 }
 

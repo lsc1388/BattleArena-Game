@@ -29,6 +29,15 @@ from src.utils.font_manager import font_manager
 surface = font_manager.render_text("遊戲文字", "medium", COLORS["white"])
 ```
 
+**Sound System**: Use `SoundManager` singleton for all audio - never use pygame.mixer directly:
+
+```python
+from src.utils.sound_manager import sound_manager
+sound_manager.play_weapon_sound(weapon_type)  # Auto-maps weapon to sound
+sound_manager.play_victory_sound()  # Special game events
+sound_manager.play_sound("race_start")  # Direct sound name
+```
+
 **Collision System**: All interactions handled by `CollisionSystem.check_all_collisions()`. Never implement custom collision loops:
 
 ```python
@@ -48,6 +57,7 @@ collision_results = self.collision_system.check_all_collisions(
 - `AI_ENEMY_TYPES`: health, speed/accuracy modifiers, damage, attack frequency
 - `DIFFICULTY_CONFIGS`: enemy health multipliers and descriptions
 - `FONT_CONFIGS`: Chinese font preferences and size mappings
+- `SOUND_CONFIGS`: audio file paths, volumes, descriptions for all game sounds
 
 ## 🎯 Entity System Patterns
 
@@ -121,11 +131,11 @@ for entity in entities[:]:  # Create copy for safe iteration
 
 **Run Game**: `python main.py` (direct execution, no `if __name__ == "__main__":` needed)
 
-**Run Tests**: Individual test files like `test_healthpack.py` (no pytest framework currently)
+**Run Tests**: Individual test files like `test_all_sounds.py` (no pytest framework currently)
 
 **Debug Keys**: F1 (spawn boss), F2 (complete level) for testing
 
-**Game Assets**: Character images in `assets/characters/` with both PNG and JPG fallbacks
+**Game Assets**: Character images in `assets/characters/` with both PNG and JPG fallbacks, sound files in `音效/` directory
 
 ## 📋 Code Style Requirements
 
@@ -139,6 +149,7 @@ for entity in entities[:]:  # Create copy for safe iteration
 
 - Never hardcode values - use `src/config.py` configurations
 - Always use `font_manager` for text rendering (handles Chinese fonts)
+- Always use `sound_manager` for audio - never use pygame.mixer directly
 - Don't implement custom collision detection - use `CollisionSystem`
 - Use manager classes for bullets/powerups, not direct entity lists
 - Remember safe iteration patterns when removing entities

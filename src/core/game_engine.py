@@ -11,6 +11,7 @@ from src.systems.collision import CollisionSystem
 from src.ui.game_ui import GameUI
 from src.ui.selection_ui import SelectionUI
 from src.utils.font_manager import font_manager
+from src.utils.sound_manager import sound_manager
 from src.core.state_manager import StateManager
 from src.core.event_handler import EventHandler
 from src.core.input_manager import InputManager
@@ -58,6 +59,10 @@ class GameEngine:
         self.selected_character = "cat"
         self.selected_difficulty = "easy"
         self.selected_scene = "lava"
+
+        # 倒數計時變數
+        self.countdown_start_time = 0
+        self.countdown_duration = 3000  # 3秒倒數（毫秒）
 
         # 初始化遊戲系統
         self._init_game_systems()
@@ -210,6 +215,11 @@ class GameEngine:
         """
         更新遊戲邏輯（每幀呼叫）\n
         """
+        # 處理倒數計時狀態
+        if self.state_manager.is_state("countdown"):
+            self._update_countdown()
+            return
+
         if not self.state_manager.is_state("playing"):
             return
 
@@ -261,6 +271,17 @@ class GameEngine:
 
         # 檢查關卡完成條件
         self._check_level_completion()
+
+    def _update_countdown(self):
+        """
+        更新倒數計時邏輯\n
+        """
+        current_time = pygame.time.get_ticks()
+        elapsed_time = current_time - self.countdown_start_time
+
+        # 倒數計時結束，開始遊戲
+        if elapsed_time >= self.countdown_duration:
+            self.start_new_game()
 
     def _update_enemies(self):
         """
@@ -348,6 +369,8 @@ class GameEngine:
             if not boss_alive and self.level_enemies_killed >= level_config.get(
                 "enemy_count", 0
             ):
+                # 播放勝利音效
+                sound_manager.play_victory_sound()
                 self.game_ui.add_message(
                     level_config["completion_message"], "achievement", COLORS["green"]
                 )
@@ -358,6 +381,8 @@ class GameEngine:
         # 一般關卡檢查
         required = level_config.get("enemy_count", 0)
         if self.level_enemies_killed >= required:
+            # 播放勝利音效
+            sound_manager.play_victory_sound()
             self.game_ui.add_message(
                 level_config.get("completion_message", "關卡完成！"),
                 "achievement",
@@ -424,6 +449,8 @@ class GameEngine:
             GAME_STATES["scene_select"],
         ]:
             self.selection_ui.draw(self.screen)
+        elif current_state == GAME_STATES["countdown"]:
+            self._draw_countdown()
         elif current_state == GAME_STATES["playing"]:
             self._draw_game()
         elif current_state == GAME_STATES["game_over"]:
@@ -539,6 +566,79 @@ class GameEngine:
         self.game_ui.draw_game_over_screen(
             self.screen, self.score, self.game_stats, self.game_completed
         )
+
+    def _draw_countdown(self):
+        """
+        繪製倒數計時畫面\n
+        """
+        # 根據選擇的場景設置背景
+        try:
+            if (
+                hasattr(self, "selected_scene")
+                and self.selected_scene
+                and self.selected_scene in SCENE_CONFIGS
+            ):
+                scene_config = SCENE_CONFIGS[self.selected_scene]
+                background_color = scene_config["background_color"]
+                accent_color = scene_config.get("accent_color", COLORS["white"])
+            else:
+                background_color = COLORS["black"]
+                accent_color = COLORS["white"]
+        except Exception as e:
+            print(f"場景背景設置錯誤: {e}, 使用預設黑色背景")
+            background_color = COLORS["black"]
+            accent_color = COLORS["white"]
+
+        self.screen.fill(background_color)
+
+        # 計算剩餘倒數時間
+        current_time = pygame.time.get_ticks()
+        elapsed_time = current_time - self.countdown_start_time
+        remaining_time = max(0, self.countdown_duration - elapsed_time)
+        countdown_number = int(remaining_time / 1000) + 1
+
+        # 如果倒數結束，顯示 "開始！"
+        if remaining_time <= 0:
+            countdown_text = "開始！"
+            text_color = COLORS["green"]
+        else:
+            countdown_text = str(countdown_number)
+            text_color = accent_color
+
+        # 繪製倒數數字（大字體）
+        countdown_surface = font_manager.render_text(
+            countdown_text, "xlarge", text_color
+        )
+        countdown_rect = countdown_surface.get_rect(
+            center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)
+        )
+        self.screen.blit(countdown_surface, countdown_rect)
+
+        # 繪製準備提示文字
+        if remaining_time > 0:
+            ready_text = "準備開始戰鬥..."
+            ready_surface = font_manager.render_text(
+                ready_text, "medium", COLORS["yellow"]
+            )
+            ready_rect = ready_surface.get_rect(
+                center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 80)
+            )
+            self.screen.blit(ready_surface, ready_rect)
+
+        # 顯示選擇的配置資訊
+        info_y_start = SCREEN_HEIGHT // 2 + 140
+        info_items = [
+            f"角色: {CHARACTER_CONFIGS[self.selected_character]['name']} {CHARACTER_CONFIGS[self.selected_character]['emoji']}",
+            f"難度: {DIFFICULTY_CONFIGS[self.selected_difficulty]['name']} {DIFFICULTY_CONFIGS[self.selected_difficulty]['emoji']}",
+            f"場景: {SCENE_CONFIGS[self.selected_scene]['name']} {SCENE_CONFIGS[self.selected_scene]['emoji']}",
+        ]
+
+        for i, info_text in enumerate(info_items):
+            info_surface = font_manager.render_text(info_text, "small", COLORS["white"])
+            info_rect = info_surface.get_rect(
+                center=(SCREEN_WIDTH // 2, info_y_start + i * 25)
+            )
+            self.screen.blit(info_surface, info_rect)
 
     def run(self):
         """

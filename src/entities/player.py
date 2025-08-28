@@ -3,6 +3,7 @@ import pygame
 import math
 from src.config import *
 from src.utils.image_manager import image_manager
+from src.utils.sound_manager import sound_manager
 
 ######################物件類別######################
 
@@ -360,6 +361,9 @@ class Player:
         # 記錄射擊時間
         self.last_shot_time = pygame.time.get_ticks()
 
+        # 播放武器射擊音效
+        sound_manager.play_weapon_sound(self.current_weapon)
+
         # 計算射擊角度
         if target_pos:
             # 朝目標位置射擊
@@ -478,6 +482,9 @@ class Player:
 
         # 記錄技能使用時間
         self.last_skill_time = current_time
+
+        # 播放技能音效
+        sound_manager.play_skill_sound()
 
         # 計算玩家中心點作為發射起點
         start_x = self.x + self.width / 2
@@ -672,6 +679,8 @@ class Player:
         # 確保生命值不會低於0
         if self.health <= 0:
             self.health = 0
+            if self.is_alive:  # 只在第一次死亡時播放音效
+                sound_manager.play_death_sound()
             self.is_alive = False
 
         return self.is_alive
