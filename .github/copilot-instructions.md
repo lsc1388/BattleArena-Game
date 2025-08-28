@@ -7,14 +7,17 @@ Essential knowledge for AI coding agents to be immediately productive in this co
 **Project**: Pygame 2D shooting game with character selection, multiple weapons, and AI opponents.
 
 **Entry Point**: `main.py` → `GameEngine` class manages game loop and state machine:
+
 - State flow: menu → character_select → difficulty_select → scene_select → playing → game_over
 - Core pattern: Event handling → Update logic → Render → Repeat at 60 FPS
 
 **Module Structure**:
+
 - `src/entities/`: Game objects (Player, Enemy, Bullet, PowerUp) - each implements `update()`, `get_rect()`, `draw()`, `is_alive`
 - `src/systems/`: Service boundaries (CollisionSystem centralizes all collision detection)
 - `src/ui/`: Interface layers (GameUI, SelectionUI) with Chinese font support via font_manager
-- `src/utils/`: Shared utilities (FontManager singleton for Chinese text rendering)
+- `src/utils/`: Shared utilities (FontManager singleton for Chinese text rendering, ImageManager for assets)
+- `src/core/`: Core systems (StateManager, EventHandler, InputManager) for game architecture
 - `src/config.py`: **All configuration data** - never hardcode game values
 
 ## 🔒 Critical Integration Points (DO NOT MODIFY ARBITRARILY)
@@ -35,17 +38,21 @@ collision_results = self.collision_system.check_all_collisions(
 ```
 
 **Configuration-Driven Design**: All balance values live in `src/config.py`:
+
 - `WEAPON_CONFIGS`: damage, ammo, reload times, fire_rate, special properties (spread, bullet_count)
 - `CHARACTER_CONFIGS`: skills, colors, cooldowns, attributes (attack_power, fire_rate, speed, health multipliers)
 - `AI_CONFIGS`: difficulty levels, accuracy, behavior patterns, health
 - `POWERUP_EFFECTS`: duration, multipliers, instant effects, weapon unlocks
-- `LEVEL_CONFIGS`: enemy types, counts, descriptions, completion messages
+- `LEVEL_CONFIGS`: enemy types, counts, descriptions, completion messages (by difficulty: easy/medium/hard)
 - `SCENE_CONFIGS`: background colors, accent colors, descriptions
 - `AI_ENEMY_TYPES`: health, speed/accuracy modifiers, damage, attack frequency
+- `DIFFICULTY_CONFIGS`: enemy health multipliers and descriptions
+- `FONT_CONFIGS`: Chinese font preferences and size mappings
 
 ## 🎯 Entity System Patterns
 
 **Standard Entity Interface**:
+
 ```python
 def update(self, screen_width, screen_height):
     # Position updates and boundary checks
@@ -65,6 +72,7 @@ self.is_active = True  # For bullets, powerups
 ```
 
 **Manager Pattern for Collections**:
+
 ```python
 # BulletManager handles all bullet lifecycle
 self.bullet_manager.create_bullet(x, y, angle, speed, damage, owner)
@@ -76,6 +84,7 @@ self.powerup_manager.spawn_powerup_on_enemy_death(x, y)
 ```
 
 **Safe Entity Removal Pattern**:
+
 ```python
 for entity in entities[:]:  # Create copy for safe iteration
     if not entity.is_alive:
@@ -88,7 +97,9 @@ for entity in entities[:]:  # Create copy for safe iteration
 
 **Skill System**: 3-second duration skills with visual effects and health cost - use `Player.use_skill()` and check `Player.is_skill_active()`
 
-**Level Progression**: Automatic enemy type switching between levels, track `level_enemies_killed` vs `LEVEL_CONFIGS[level]["enemy_count"]`
+**Level Progression**: Automatic enemy type switching between levels, track `level_enemies_killed` vs `LEVEL_CONFIGS[difficulty][level]["enemy_count"]`
+
+**Difficulty System**: Three-tier difficulty (easy/medium/hard) affects enemy counts, health multipliers, and level progression
 
 **Chinese Font Handling**: FontManager automatically detects system fonts, use `font_manager.render_text()` consistently
 
@@ -104,6 +115,8 @@ for entity in entities[:]:  # Create copy for safe iteration
 
 **Scene Backgrounds**: `SCENE_CONFIGS[scene]["background_color"]` for environment customization
 
+**Level Configuration**: `LEVEL_CONFIGS[difficulty][level]` for enemy counts, boss flags, and scene settings
+
 ## 🛠️ Development Workflow
 
 **Run Game**: `python main.py` (direct execution, no `if __name__ == "__main__":` needed)
@@ -111,6 +124,8 @@ for entity in entities[:]:  # Create copy for safe iteration
 **Run Tests**: Individual test files like `test_healthpack.py` (no pytest framework currently)
 
 **Debug Keys**: F1 (spawn boss), F2 (complete level) for testing
+
+**Game Assets**: Character images in `assets/characters/` with both PNG and JPG fallbacks
 
 ## 📋 Code Style Requirements
 

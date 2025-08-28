@@ -121,6 +121,7 @@ class GameEngine:
         self._init_game_state()
 
         # 創建玩家（使用選擇的角色）
+        # 創建玩家角色
         player_start_x = SCREEN_WIDTH // 2 - PLAYER_SIZE // 2
         player_start_y = SCREEN_HEIGHT - 100
         self.player = Player(

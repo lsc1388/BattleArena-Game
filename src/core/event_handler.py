@@ -120,7 +120,12 @@ class EventHandler:
             self.game_engine.selection_ui.current_selection_type = "scene"
         elif action == "scene_selected":
             self.game_engine.selected_scene = result["scene"]
-            self.game_engine.selected_character = result["character"]
+            # 使用已保存的角色選擇，而不是可能被重置的UI數據
+            if result.get("character"):
+                self.game_engine.selected_character = result["character"]
+            # 確保角色信息不為空
+            if not self.game_engine.selected_character:
+                self.game_engine.selected_character = "cat"  # 預設角色
             # 選擇完畢，開始遊戲
             self.game_engine.start_new_game()
 
@@ -291,14 +296,17 @@ class EventHandler:
         """
         處理需要連續檢測的輸入（WASD移動，滑鼠準心）\n
         根據規格：\n
-        - 移動控制：WASD 控制角色位置，滑鼠無法控制移動\n
+        - 移動控制：WASD 控制角色位置\n
         - 射擊準心：滑鼠移動準心，子彈命中位置為準心正中心\n
+        - 技能方向：當技能啟動時，技能攻擊方向跟隨滑鼠位置\n
         """
         keys = pygame.key.get_pressed()
         mouse_pos = pygame.mouse.get_pos()
 
-        # 只使用鍵盤控制移動，不傳入滑鼠位置進行移動控制
-        self.game_engine.player.handle_input(keys, mouse_pos=None, mouse_buttons=None)
+        # 傳遞滑鼠位置，讓Player類別用於技能方向控制
+        self.game_engine.player.handle_input(
+            keys, mouse_pos=mouse_pos, mouse_buttons=None
+        )
 
         # 處理滑鼠射擊（左鍵連續按住時持續射擊）
         mouse_buttons = pygame.mouse.get_pressed()

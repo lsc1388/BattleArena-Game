@@ -94,16 +94,10 @@ class ImageManager:
         image_path = character_config["image_path"]
 
         try:
-            # 計算圖片的完整路徑
-            # 如果是絕對路徑，直接使用
-            if os.path.isabs(image_path):
-                full_path = image_path
-            else:
-                # 相對路徑，從專案根目錄開始計算
-                project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-                full_path = os.path.join(project_root, image_path)
-            
-            print(f"🔍 嘗試載入圖片: {character_type} - {full_path}")
+            # 嘗試載入圖片
+            full_path = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.dirname(__file__))), image_path
+            )
 
             if not os.path.exists(full_path):
                 print(f"圖片檔案不存在: {full_path}")
@@ -111,7 +105,6 @@ class ImageManager:
 
             # 載入並處理圖片
             raw_image = pygame.image.load(full_path)
-            print(f"✅ 成功載入角色圖片: {character_type} - {full_path}")
 
             # 檢查 pygame 顯示是否已初始化
             try:
@@ -139,9 +132,125 @@ class ImageManager:
 
     def _create_fallback_image(self, character_config, size):
         """
-        創建降級顯示圖片（幾何形狀）\n
+        創建降級顯示圖片（優先使用備用圖片，然後是幾何形狀）\n
         \n
-        當圖片載入失敗時，使用幾何形狀代替\n
+        當主要圖片載入失敗時，先嘗試載入備用圖片，如果備用圖片也失敗，則使用幾何形狀代替\n
+        \n
+        參數:\n
+        character_config (dict): 角色配置資訊\n
+        size (tuple): 圖片尺寸\n
+        \n
+        回傳:\n
+        pygame.Surface: 備用圖片或幾何形狀圖片\n
+        """
+        # 首先嘗試載入備用圖片
+        fallback_image = self._try_load_fallback_image(character_config, size)
+        if fallback_image:
+            return fallback_image
+
+        # 如果備用圖片也載入失敗，則創建幾何形狀
+        return self._create_geometric_shape(character_config, size)
+
+    def _try_load_fallback_image(self, character_config, size):
+        """
+        嘗試載入備用圖片（優先使用配置中指定的備用圖片路徑）\n
+        \n
+        參數:\n
+        character_config (dict): 角色配置資訊\n
+        size (tuple): 圖片尺寸\n
+        \n
+        回傳:\n
+        pygame.Surface: 備用圖片，如果載入失敗則返回 None\n
+        """
+        if not character_config:
+            return None
+
+        # 優先使用配置中指定的備用圖片路徑
+        fallback_path = character_config.get("fallback_image_path")
+
+        if fallback_path:
+            try:
+                # 嘗試載入配置中指定的備用圖片
+                full_path = os.path.join(
+                    os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+                    fallback_path,
+                )
+
+                if not os.path.exists(full_path):
+                    print(f"🔄 配置的備用圖片檔案不存在: {full_path}")
+                else:
+                    print(f"🔄 載入配置的備用圖片: {fallback_path}")
+                    raw_image = pygame.image.load(full_path)
+
+                    # 檢查 pygame 顯示是否已初始化
+                    try:
+                        raw_image = raw_image.convert_alpha()
+                    except pygame.error:
+                        raw_image = raw_image.convert()
+
+                    # 縮放圖片
+                    scaled_image = pygame.transform.scale(raw_image, size)
+
+                    print(f"✅ 成功載入配置的備用圖片: {fallback_path}")
+                    return scaled_image
+
+            except Exception as e:
+                print(f"❌ 載入配置的備用圖片失敗 ({fallback_path}): {e}")
+
+        # 如果沒有配置備用圖片或載入失敗，使用預設的備用圖片
+        default_fallback_paths = {
+            "cat": "assets/characters/cat.jpg",  # 原始的貓圖片
+            "dog": "assets/characters/dog.jpg",  # 原始的狗圖片
+            "wolf": "assets/characters/wolf.jpg",  # 原始的狼圖片
+        }
+
+        # 根據角色類型獲取預設備用圖片路徑
+        character_name = character_config.get("name", "")
+        default_fallback_path = None
+
+        if "貓" in character_name:
+            default_fallback_path = default_fallback_paths.get("cat")
+        elif "狗" in character_name:
+            default_fallback_path = default_fallback_paths.get("dog")
+        elif "狼" in character_name:
+            default_fallback_path = default_fallback_paths.get("wolf")
+
+        if not default_fallback_path:
+            return None
+
+        try:
+            # 嘗試載入預設備用圖片
+            full_path = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+                default_fallback_path,
+            )
+
+            if not os.path.exists(full_path):
+                print(f"🔄 預設備用圖片檔案不存在: {full_path}")
+                return None
+
+            print(f"🔄 載入預設備用圖片: {default_fallback_path}")
+            raw_image = pygame.image.load(full_path)
+
+            # 檢查 pygame 顯示是否已初始化
+            try:
+                raw_image = raw_image.convert_alpha()
+            except pygame.error:
+                raw_image = raw_image.convert()
+
+            # 縮放圖片
+            scaled_image = pygame.transform.scale(raw_image, size)
+
+            print(f"✅ 成功載入預設備用圖片: {default_fallback_path}")
+            return scaled_image
+
+        except Exception as e:
+            print(f"❌ 載入預設備用圖片失敗 ({default_fallback_path}): {e}")
+            return None
+
+    def _create_geometric_shape(self, character_config, size):
+        """
+        創建幾何形狀圖片\n
         \n
         參數:\n
         character_config (dict): 角色配置資訊\n
@@ -159,6 +268,8 @@ class ImageManager:
         else:
             color = COLORS["gray"]
             character_type = "未知"
+
+        print(f"🔶 使用幾何形狀作為最終備用方案: {character_type}")
 
         # 根據角色類型繪製不同形狀
         if "貓" in character_type:
