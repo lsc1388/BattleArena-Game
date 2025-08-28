@@ -8,7 +8,7 @@ Essential knowledge for AI coding agents to be immediately productive in this co
 
 **Entry Point**: `main.py` → `GameEngine` class manages game loop and state machine:
 
-- State flow: menu → character_select → difficulty_select → scene_select → playing → game_over
+- State flow: menu → character_select → difficulty_select → scene_select → countdown → playing → game_over
 - Core pattern: Event handling → Update logic → Render → Repeat at 60 FPS
 
 **Module Structure**:
@@ -103,7 +103,7 @@ for entity in entities[:]:  # Create copy for safe iteration
 
 ## 🎯 Critical Project-Specific Patterns
 
-**State Machine Flow**: Menu → character_select → difficulty_select → scene_select → playing → game_over (see `GameEngine`)
+**State Machine Flow**: Menu → character_select → difficulty_select → scene_select → countdown → playing → game_over (see `GameEngine`)
 
 **Skill System**: 3-second duration skills with visual effects and health cost - use `Player.use_skill()` and check `Player.is_skill_active()`
 

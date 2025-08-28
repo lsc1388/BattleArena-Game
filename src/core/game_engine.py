@@ -330,11 +330,37 @@ class GameEngine:
         """
         更新技能持續效果\n
         \n
-        注意：新版技能系統使用追蹤子彈，不再需要持續效果邏輯\n
-        保留此方法用於向後相容性\n
+        處理雷射技能的持續攻擊傷害\n
         """
-        # 技能現在通過追蹤子彈實現，不再需要持續效果處理
-        pass
+        if not self.player or not self.player.is_skill_active():
+            return
+
+        # 只處理雷射技能的持續傷害
+        active_skill_info = self.player.get_active_skill_info()
+        if not active_skill_info or active_skill_info["type"] != "laser":
+            return
+
+        # 計算每幀傷害（每秒傷害 / 60 FPS）
+        damage_per_second = self.player.get_skill_damage_per_second()
+        damage_per_frame = damage_per_second / 60  # 假設60 FPS
+
+        # 對範圍內的敵人造成持續傷害
+        enemies_hit = 0
+        for enemy in self.enemies:
+            if self.player.can_deal_skill_damage_to_enemy(enemy):
+                enemy.take_damage(damage_per_frame)
+                enemies_hit += 1
+
+                # 如果敵人被擊殺，計分
+                if not enemy.is_alive:
+                    self.score += 100
+                    self.game_stats["enemies_killed"] += 1
+                    self.level_enemies_killed += 1
+
+        # 更新統計
+        if enemies_hit > 0:
+            self.game_stats.setdefault("laser_hits", 0)
+            self.game_stats["laser_hits"] += enemies_hit
 
     def _manage_enemy_spawning(self):
         """
@@ -539,6 +565,8 @@ class GameEngine:
         # 繪製遊戲物件
         if self.player:
             self.player.draw(self.screen)
+            # 繪製技能特效（如雷射光束）
+            self.player.draw_skill_effects(self.screen, self.enemies)
 
         for enemy in self.enemies:
             enemy.draw(self.screen)

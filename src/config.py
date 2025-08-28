@@ -401,6 +401,11 @@ SOUND_CONFIGS = {
         "volume": 0.6,
         "description": "技能音效 - 使用技能時播放",
     },
+    "powerup_pickup": {
+        "file_path": "音效/xm2855.wav",
+        "volume": 0.5,
+        "description": "道具拾取音效 - 拿到道具時播放",
+    },
 }
 
 # 關卡設定（按難度分級）

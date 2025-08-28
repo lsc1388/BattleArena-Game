@@ -161,6 +161,17 @@ class SoundManager:
         """
         self.play_sound("skill_use")
 
+    def play_powerup_pickup_sound(self):
+        """
+        播放道具拾取音效\n
+        \n
+        當玩家拾取道具時播放特殊的拾取音效\n
+        \n
+        使用範例:\n
+        sound_manager.play_powerup_pickup_sound()  # 在拾取道具時播放\n
+        """
+        self.play_sound("powerup_pickup")
+
     def set_master_volume(self, volume):
         """
         設定主音量\n

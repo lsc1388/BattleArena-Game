@@ -394,32 +394,150 @@ class GameUI:
 
     def _draw_skill_cooldown(self, screen, player):
         """
-        繪製技能冷卻時間\n
+        繪製技能冷卻時間和技能啟用狀態\n
         \n
         參數:\n
         screen (pygame.Surface): 遊戲畫面物件\n
         player: 玩家物件\n
         """
         x, y = self.skill_cooldown_pos
+
+        # 檢查技能是否正在啟用中
+        if player.is_skill_active():
+            active_skill_info = player.get_active_skill_info()
+            if active_skill_info:
+                # 技能啟用時顯示剩餘時間倒數
+                remaining_time = active_skill_info["remaining_time"]
+                skill_text = f"技能啟用中: {remaining_time:.1f}s"
+                color = active_skill_info["effect_color"]
+
+                # 添加閃爍效果
+                current_time = pygame.time.get_ticks()
+                if (current_time // 200) % 2 == 0:  # 每200ms閃爍
+                    color = COLORS["white"]
+
+                text_surface = font_manager.render_text(skill_text, "small", color)
+                screen.blit(text_surface, (x, y))
+
+                # 顯示技能名稱
+                skill_name_y = y + 20
+                skill_name = f"🔥 {active_skill_info.get('type', '技能').upper()}"
+                name_surface = font_manager.render_text(
+                    skill_name, "small", COLORS["yellow"]
+                )
+                screen.blit(name_surface, (x, skill_name_y))
+
+                # 顯示技能進度條
+                progress_y = y + 40
+                self._draw_skill_progress_bar(
+                    screen, x, progress_y, remaining_time, 3.0, color
+                )
+
+                return  # 技能啟用時不顯示冷卻資訊
+
+        # 技能未啟用時顯示冷卻狀態
         skill_info = player.get_skill_cooldown_info()
 
         if skill_info["ready"]:
-            skill_text = "技能: 就緒"
+            skill_text = "技能: 就緒 (Q)"
             color = COLORS["green"]
+
+            # 就緒時添加輕微閃爍
+            current_time = pygame.time.get_ticks()
+            if (current_time // 500) % 2 == 0:  # 每500ms閃爍
+                color = COLORS["white"]
         else:
-            cooldown_minutes = int(skill_info["cooldown_remaining"] // 60)
-            cooldown_seconds = int(skill_info["cooldown_remaining"] % 60)
-            skill_text = f"技能: {cooldown_minutes}:{cooldown_seconds:02d}"
+            cooldown_remaining = skill_info["cooldown_remaining"]
+            skill_text = f"技能冷卻: {cooldown_remaining:.1f}s"
             color = COLORS["red"]
 
-        text_surface = self.font_small.render(skill_text, True, color)
+        text_surface = font_manager.render_text(skill_text, "small", color)
         screen.blit(text_surface, (x, y))
 
         # 添加技能說明
         skill_desc_y = y + 20
         skill_desc = "Q: 全螢幕攻擊(-10%血量)"
-        desc_surface = self.font_small.render(skill_desc, True, COLORS["white"])
+        desc_surface = font_manager.render_text(skill_desc, "small", COLORS["white"])
         screen.blit(desc_surface, (x, skill_desc_y))
+
+        # 如果技能在冷卻中，顯示冷卻進度條
+        if not skill_info["ready"]:
+            progress_y = y + 40
+            total_cooldown = skill_info["total_cooldown"]
+            elapsed_time = total_cooldown - skill_info["cooldown_remaining"]
+            progress = elapsed_time / total_cooldown
+            self._draw_cooldown_progress_bar(screen, x, progress_y, progress)
+
+    def _draw_skill_progress_bar(
+        self, screen, x, y, remaining_time, total_time, skill_color
+    ):
+        """
+        繪製技能剩餘時間進度條
+
+        參數:
+        screen (pygame.Surface): 遊戲畫面物件
+        x, y (int): 進度條位置
+        remaining_time (float): 剩餘時間（秒）
+        total_time (float): 總持續時間（秒）
+        skill_color (tuple): 技能顏色
+        """
+        bar_width = 120
+        bar_height = 8
+
+        # 計算進度（剩餘時間的比例）
+        progress = remaining_time / total_time
+
+        # 背景條
+        pygame.draw.rect(screen, COLORS["dark_gray"], (x, y, bar_width, bar_height))
+
+        # 進度條（從右往左消失）
+        if progress > 0:
+            progress_width = int(bar_width * progress)
+            pygame.draw.rect(screen, skill_color, (x, y, progress_width, bar_height))
+
+        # 邊框
+        pygame.draw.rect(screen, COLORS["white"], (x, y, bar_width, bar_height), 1)
+
+        # 時間文字
+        time_text = f"{remaining_time:.1f}s"
+        time_surface = font_manager.render_text(time_text, "small", COLORS["white"])
+        text_x = x + bar_width + 5
+        screen.blit(time_surface, (text_x, y - 2))
+
+    def _draw_cooldown_progress_bar(self, screen, x, y, progress):
+        """
+        繪製技能冷卻進度條
+
+        參數:
+        screen (pygame.Surface): 遊戲畫面物件
+        x, y (int): 進度條位置
+        progress (float): 冷卻進度 (0.0 到 1.0)
+        """
+        bar_width = 120
+        bar_height = 6
+
+        # 背景條
+        pygame.draw.rect(screen, COLORS["dark_gray"], (x, y, bar_width, bar_height))
+
+        # 進度條（從左往右填滿）
+        if progress > 0:
+            progress_width = int(bar_width * progress)
+            # 顏色隨進度變化：紅色 → 黃色 → 綠色
+            if progress < 0.5:
+                # 前半段：紅色到黃色
+                red_component = 255
+                green_component = int(255 * (progress * 2))
+                color = (red_component, green_component, 0)
+            else:
+                # 後半段：黃色到綠色
+                red_component = int(255 * (2 - progress * 2))
+                green_component = 255
+                color = (red_component, green_component, 0)
+
+            pygame.draw.rect(screen, color, (x, y, progress_width, bar_height))
+
+        # 邊框
+        pygame.draw.rect(screen, COLORS["white"], (x, y, bar_width, bar_height), 1)
 
     def _draw_enemy_health_bars(self, screen, enemies):
         """

@@ -486,6 +486,16 @@ class Player:
         # 播放技能音效
         sound_manager.play_skill_sound()
 
+        # 設定技能啟用狀態
+        self.active_skill = {
+            "type": skill_config["type"],
+            "name": skill_config["name"],
+            "effect_color": skill_config["effect_color"],
+            "damage": skill_config["damage"],
+            "start_time": current_time,
+            "duration": skill_config["duration"],  # 3000ms = 3秒
+        }
+
         # 計算玩家中心點作為發射起點
         start_x = self.x + self.width / 2
         start_y = self.y
@@ -511,7 +521,7 @@ class Player:
                 "effect_color": skill_config["effect_color"],
                 "target_enemy": enemy,  # 指定這個子彈追蹤的特定敵人
                 "enemies": alive_enemies,  # 完整敵人列表，用於重新尋找目標
-                "lifetime": 3000,  # 3秒生命時間
+                "lifetime": skill_config["duration"],  # 使用技能配置的持續時間
                 "start_time": current_time,
             }
             bullets_data.append(bullet_data)
@@ -527,7 +537,7 @@ class Player:
             "range": "auto_tracking_all",  # 追蹤所有敵人
             "health_cost": skill_cost,
             "description": skill_config["description"],
-            "duration": 3000,  # 3秒持續時間
+            "duration": skill_config["duration"],  # 使用技能配置的持續時間
             "targets_count": len(alive_enemies),
             "bullets_data": bullets_data,  # 多個子彈的資料
         }
@@ -610,6 +620,53 @@ class Player:
             if skill_elapsed_time >= self.active_skill["duration"]:
                 # 技能時間結束
                 self.active_skill = None
+
+    def get_skill_damage_per_second(self):
+        """
+        取得技能每秒傷害值（用於持續攻擊計算）
+
+        回傳:
+        float: 每秒傷害值，如果技能未啟用則回傳0
+        """
+        if not self.active_skill:
+            return 0
+
+        # 技能總傷害分攤到3秒內
+        total_damage = self.active_skill["damage"]
+        duration_seconds = self.active_skill["duration"] / 1000  # 轉成秒
+        return total_damage / duration_seconds
+
+    def can_deal_skill_damage_to_enemy(self, enemy):
+        """
+        檢查是否可以對指定敵人造成技能傷害
+
+        參數:
+        enemy: 敵人物件
+
+        回傳:
+        bool: 是否可以造成傷害
+        """
+        if not self.active_skill or not enemy.is_alive:
+            return False
+
+        # 只有雷射技能才有持續傷害
+        if self.active_skill["type"] != "laser":
+            return False
+
+        # 計算距離
+        player_center_x = self.x + self.width / 2
+        player_center_y = self.y + self.height / 2
+        enemy_center_x = enemy.x + enemy.width / 2
+        enemy_center_y = enemy.y + enemy.height / 2
+
+        distance = math.sqrt(
+            (enemy_center_x - player_center_x) ** 2
+            + (enemy_center_y - player_center_y) ** 2
+        )
+
+        # 雷射最大攻擊距離
+        max_laser_range = 500
+        return distance <= max_laser_range
 
     def is_skill_active(self):
         """
@@ -766,7 +823,13 @@ class Player:
         if self.active_skill:
             # 技能啟用時顯示技能效果顏色邊框
             border_color = self.active_skill["effect_color"]
-            border_width = 3
+            border_width = 4  # 技能時邊框更粗
+
+            # 技能啟用時添加閃爍效果
+            current_time = pygame.time.get_ticks()
+            pulse_cycle = 300  # 300ms一個週期
+            if (current_time // pulse_cycle) % 2 == 0:
+                border_width = 6  # 閃爍時更粗
         elif "skill_boost" in self.powerups:
             border_color = COLORS["purple"]  # 技能狀態用紫色
         elif self.is_reloading:
@@ -785,8 +848,172 @@ class Player:
                 border_width,
             )
 
+        # 技能啟用時在玩家周圍繪製光環效果
+        if self.active_skill:
+            self._draw_skill_aura(screen)
+
         # 在角色上方顯示角色類型標識（簡化的圖示）
         self._draw_character_indicator(screen)
+
+    def draw_skill_effects(self, screen, enemies):
+        """
+        繪製技能特效（雷射光束等）
+
+        參數:
+        screen (pygame.Surface): 遊戲畫面物件
+        enemies (list): 敵人列表，用於繪製雷射光束目標
+        """
+        if not self.active_skill:
+            return
+
+        # 只有雷射技能才繪製光束效果
+        if self.active_skill["type"] == "laser":
+            self._draw_laser_beams(screen, enemies)
+
+    def _draw_laser_beams(self, screen, enemies):
+        """
+        繪製雷射光束效果
+
+        參數:
+        screen (pygame.Surface): 遊戲畫面物件
+        enemies (list): 敵人列表
+        """
+        if not enemies:
+            return
+
+        current_time = pygame.time.get_ticks()
+        skill_elapsed_time = current_time - self.active_skill["start_time"]
+
+        # 計算玩家中心點
+        player_center_x = self.x + self.width / 2
+        player_center_y = self.y + self.height / 2
+
+        # 雷射顏色
+        laser_color = self.active_skill["effect_color"]
+
+        # 計算閃爍效果
+        pulse_cycle = 100  # 100ms一個週期
+        is_bright = (current_time // pulse_cycle) % 2 == 0
+
+        # 遍歷所有活著的敵人，繪製雷射光束
+        alive_enemies = [enemy for enemy in enemies if enemy.is_alive]
+
+        for enemy in alive_enemies:
+            # 計算敵人中心點
+            enemy_center_x = enemy.x + enemy.width / 2
+            enemy_center_y = enemy.y + enemy.height / 2
+
+            # 計算距離，只對近距離敵人發射雷射
+            distance = math.sqrt(
+                (enemy_center_x - player_center_x) ** 2
+                + (enemy_center_y - player_center_y) ** 2
+            )
+
+            # 最大雷射距離
+            max_laser_range = 500
+            if distance > max_laser_range:
+                continue
+
+            # 雷射光束粗細（閃爍效果）
+            beam_width = 6 if is_bright else 4
+
+            # 繪製雷射光束主體
+            pygame.draw.line(
+                screen,
+                laser_color,
+                (int(player_center_x), int(player_center_y)),
+                (int(enemy_center_x), int(enemy_center_y)),
+                beam_width,
+            )
+
+            # 繪製外層光暈
+            glow_color = tuple(min(255, c + 80) for c in laser_color)
+            pygame.draw.line(
+                screen,
+                glow_color,
+                (int(player_center_x), int(player_center_y)),
+                (int(enemy_center_x), int(enemy_center_y)),
+                beam_width + 2,
+            )
+
+            # 在雷射接觸點繪製爆炸效果
+            explosion_radius = 15 if is_bright else 12
+            pygame.draw.circle(
+                screen,
+                laser_color,
+                (int(enemy_center_x), int(enemy_center_y)),
+                explosion_radius,
+            )
+
+            # 外層爆炸光暈
+            pygame.draw.circle(
+                screen,
+                glow_color,
+                (int(enemy_center_x), int(enemy_center_y)),
+                explosion_radius + 5,
+                3,
+            )
+
+    def _draw_skill_aura(self, screen):
+        """
+        繪製技能啟用時的光環效果
+
+        參數:
+        screen (pygame.Surface): 遊戲畫面物件
+        """
+        if not self.active_skill:
+            return
+
+        current_time = pygame.time.get_ticks()
+        skill_elapsed_time = current_time - self.active_skill["start_time"]
+
+        # 計算光環半徑（隨時間脈動）
+        base_radius = 35
+        pulse_amplitude = 8
+        pulse_speed = 0.005  # 脈動速度
+        radius = base_radius + pulse_amplitude * math.sin(current_time * pulse_speed)
+
+        # 計算光環透明度（技能即將結束時淡出）
+        skill_progress = skill_elapsed_time / self.active_skill["duration"]
+        if skill_progress > 0.8:  # 最後20%時間開始淡出
+            fade_progress = (skill_progress - 0.8) / 0.2
+            alpha = int(120 * (1 - fade_progress))
+        else:
+            alpha = 120  # 正常透明度
+
+        # 創建有透明度的光環表面
+        aura_surface = pygame.Surface(
+            (radius * 2 + 10, radius * 2 + 10), pygame.SRCALPHA
+        )
+
+        # 玩家中心位置
+        center_x = self.x + self.width // 2
+        center_y = self.y + self.height // 2
+
+        # 繪製多層光環效果
+        skill_color = self.active_skill["effect_color"]
+
+        # 外層光環（較淡）
+        outer_color = (*skill_color, alpha // 3)
+        pygame.draw.circle(
+            aura_surface, outer_color, (radius + 5, radius + 5), int(radius), 3
+        )
+
+        # 中層光環
+        mid_color = (*skill_color, alpha // 2)
+        pygame.draw.circle(
+            aura_surface, mid_color, (radius + 5, radius + 5), int(radius * 0.7), 2
+        )
+
+        # 內層光環（較亮）
+        inner_color = (*skill_color, alpha)
+        pygame.draw.circle(
+            aura_surface, inner_color, (radius + 5, radius + 5), int(radius * 0.4), 1
+        )
+
+        # 將光環表面貼到主畫面
+        aura_rect = aura_surface.get_rect(center=(center_x, center_y))
+        screen.blit(aura_surface, aura_rect)
 
     def _draw_character_indicator(self, screen):
         """
