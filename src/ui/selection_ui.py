@@ -144,15 +144,16 @@ class SelectionUI:
         title_rect = title_surface.get_rect(center=(self.screen_width // 2, 60))
         screen.blit(title_surface, title_rect)
 
-        # 角色選項
-        options_start_x = self.screen_width // 2 - 300
+        # 角色選項 - 動態計算佈局，確保所有角色都在畫面內
+        card_width = 180
+        card_spacing = 20  # 卡片之間的間距
+        total_width = len(self.character_options) * card_width + (len(self.character_options) - 1) * card_spacing
+        options_start_x = max(10, (self.screen_width - total_width) // 2)  # 確保不會超出左邊界
         options_y = 150
-        option_width = 200
-        option_spacing = 200
 
         for i, character_key in enumerate(self.character_options):
             character_config = CHARACTER_CONFIGS[character_key]
-            x = options_start_x + i * option_spacing
+            x = options_start_x + i * (card_width + card_spacing)
 
             # 選中效果
             is_selected = i == self.character_index
@@ -191,14 +192,16 @@ class SelectionUI:
             char_rect = char_surface.get_rect(center=(self.screen_width // 2, 90))
             screen.blit(char_surface, char_rect)
 
-        # 場景選項
-        options_start_x = self.screen_width // 2 - 300
+        # 場景選項 - 動態計算佈局，確保所有場景都在畫面內
+        card_width = 180
+        card_spacing = 20  # 卡片之間的間距
+        total_width = len(self.scene_options) * card_width + (len(self.scene_options) - 1) * card_spacing
+        options_start_x = max(10, (self.screen_width - total_width) // 2)  # 確保不會超出左邊界
         options_y = 150
-        option_spacing = 200
 
         for i, scene_key in enumerate(self.scene_options):
             scene_config = SCENE_CONFIGS[scene_key]
-            x = options_start_x + i * option_spacing
+            x = options_start_x + i * (card_width + card_spacing)
 
             # 選中效果
             is_selected = i == self.scene_index
@@ -236,14 +239,16 @@ class SelectionUI:
             char_rect = char_surface.get_rect(center=(self.screen_width // 2, 90))
             screen.blit(char_surface, char_rect)
 
-        # 難度選項
-        options_start_x = self.screen_width // 2 - 270
+        # 難度選項 - 動態計算佈局，確保所有難度都在畫面內
+        card_width = 160
+        card_spacing = 20  # 卡片之間的間距
+        total_width = len(self.difficulty_options) * card_width + (len(self.difficulty_options) - 1) * card_spacing
+        options_start_x = max(10, (self.screen_width - total_width) // 2)  # 確保不會超出左邊界
         options_y = 150
-        option_spacing = 180
 
         for i, difficulty_key in enumerate(self.difficulty_options):
             difficulty_config = DIFFICULTY_CONFIGS[difficulty_key]
-            x = options_start_x + i * option_spacing
+            x = options_start_x + i * (card_width + card_spacing)
 
             # 選中效果
             is_selected = i == self.difficulty_index
