@@ -28,6 +28,10 @@ class StateManager:
         self.previous_state = None
         self.state_change_time = 0
 
+        # 暫停功能相關狀態
+        self.state_before_pause = None  # 暫停前的狀態
+        self.pause_start_time = 0  # 暫停開始時間
+
         # 狀態轉換規則定義
         self.valid_transitions = {
             GAME_STATES["menu"]: [GAME_STATES["character_select"]],
@@ -185,6 +189,13 @@ class StateManager:
                         current_time - self.game_engine.game_start_time
                     ) / 1000
 
+        elif state == GAME_STATES["paused"]:
+            # 進入暫停狀態時記錄暫停前的狀態和時間
+            if self.previous_state and self.previous_state != GAME_STATES["paused"]:
+                self.state_before_pause = self.previous_state
+            self.pause_start_time = pygame.time.get_ticks()
+            print(f"🔒 遊戲已暫停，暫停前狀態: {self.state_before_pause}")
+
     def get_current_state(self):
         """
         取得當前遊戲狀態\n
@@ -244,3 +255,64 @@ class StateManager:
             else target_state_name
         )
         return self._is_valid_transition(self.current_state, target_state)
+
+    def pause_game(self):
+        """
+        暫停遊戲\n
+        \n
+        只有在遊戲進行中才能暫停\n
+        \n
+        回傳:\n
+        bool: 是否成功暫停\n
+        """
+        if self.current_state == GAME_STATES["playing"]:
+            return self.change_state("paused")
+        return False
+
+    def resume_game(self):
+        """
+        恢復遊戲\n
+        \n
+        從暫停狀態恢復到暫停前的狀態\n
+        \n
+        回傳:\n
+        bool: 是否成功恢復\n
+        """
+        if self.current_state == GAME_STATES["paused"]:
+            if self.state_before_pause:
+                # 直接設置狀態，避免正常的轉換檢查
+                self.previous_state = self.current_state
+                self.current_state = self.state_before_pause
+                self.state_change_time = pygame.time.get_ticks()
+
+                # 清除暫停相關狀態
+                pause_duration = self.state_change_time - self.pause_start_time
+                self.state_before_pause = None
+                self.pause_start_time = 0
+
+                print(f"▶️ 遊戲已恢復，暫停時間: {pause_duration/1000:.1f}秒")
+                return True
+            else:
+                # 如果沒有記錄暫停前狀態，預設回到遊戲中
+                return self.change_state("playing")
+        return False
+
+    def is_paused(self):
+        """
+        檢查遊戲是否處於暫停狀態\n
+        \n
+        回傳:\n
+        bool: 是否暫停\n
+        """
+        return self.current_state == GAME_STATES["paused"]
+
+    def get_pause_duration(self):
+        """
+        獲取當前暫停時長\n
+        \n
+        回傳:\n
+        float: 暫停時長（秒），如果未暫停則返回0\n
+        """
+        if self.is_paused() and self.pause_start_time > 0:
+            return (pygame.time.get_ticks() - self.pause_start_time) / 1000
+        return 0

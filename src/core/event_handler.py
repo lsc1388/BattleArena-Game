@@ -148,6 +148,8 @@ class EventHandler:
             self._handle_menu_keys(key)
         elif current_state == GAME_STATES["playing"]:
             self._handle_game_keys(key)
+        elif current_state == GAME_STATES["paused"]:
+            self._handle_paused_keys(key)
         elif current_state == GAME_STATES["game_over"]:
             self._handle_game_over_keys(key)
 
@@ -186,7 +188,8 @@ class EventHandler:
     def _handle_game_keys(self, key):
         """處理遊戲中的按鍵"""
         if key == pygame.K_ESCAPE:
-            self.game_engine.state_manager.change_state("menu")
+            # ESC 暫停遊戲
+            self.game_engine.state_manager.pause_game()
         elif key == KEYS["reload"]:
             if self.game_engine.player:
                 if self.game_engine.player.start_reload():
@@ -249,6 +252,36 @@ class EventHandler:
         if key == pygame.K_r:
             self.game_engine.start_new_game()
         elif key == pygame.K_ESCAPE:
+            self.game_engine.state_manager.change_state("menu")
+
+    def _handle_paused_keys(self, key):
+        """
+        處理暫停狀態的按鍵\n
+        \n
+        ESC - 繼續遊戲\n
+        R - 重新開始當前關卡\n
+        S - 回到場景選擇\n
+        D - 回到難度選擇\n
+        C - 回到角色選擇\n
+        Q - 退出到主選單\n
+        """
+        if key == pygame.K_ESCAPE:
+            # ESC 繼續遊戲
+            self.game_engine.state_manager.resume_game()
+        elif key == pygame.K_r:
+            # R 重新開始當前關卡
+            self.game_engine.restart_current_level()
+        elif key == pygame.K_s:
+            # S 回到場景選擇
+            self.game_engine.restart_from_scene_select()
+        elif key == pygame.K_d:
+            # D 回到難度選擇
+            self.game_engine.restart_from_difficulty_select()
+        elif key == pygame.K_c:
+            # C 回到角色選擇
+            self.game_engine.restart_from_character_select()
+        elif key == pygame.K_q:
+            # Q 退出到主選單
             self.game_engine.state_manager.change_state("menu")
 
     def _handle_skill_activation(self):

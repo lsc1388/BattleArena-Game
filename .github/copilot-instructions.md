@@ -97,6 +97,7 @@ self.bullet_manager.draw(screen)
 
 # PowerUpManager handles spawning and pickup logic
 self.powerup_manager.spawn_powerup_on_enemy_death(x, y)
+self.powerup_manager.spawn_victory_star_on_boss_death(boss_x, boss_y)
 ```
 
 **Safe Entity Removal Pattern**:
@@ -159,13 +160,13 @@ for entity in entities[:]:  # Create copy for safe iteration
 
 **Run Game**: `python main.py` (direct execution, no `if __name__ == "__main__":` needed)
 
-**Test Files**: Individual test files like `test_complete_shotgun.py`, `test_bullet_image.py` (manual testing, no pytest framework)
+**Manual Testing**: No automated testing framework - create individual test files for specific features (e.g., `test_complete_shotgun.py`, `test_bullet_image.py`)
 
-**Debug Keys**: F1 (spawn boss), F2 (complete level), H (toggle health display), C (toggle crosshair)
+**Debug Keys**: F1 (spawn boss), F2 (complete level), H (toggle health display), C (toggle crosshair), +/- (adjust player health in menu)
 
-**Game Controls**: WASD (movement), Mouse (aim/shoot), Q (skill), R (reload), 1-5 (weapons), ESC (menu)
+**Game Controls**: WASD (movement), Mouse (aim/shoot), Q (skill), R (reload), 1-5 (weapons), ESC (menu), Right-click (restart game)
 
-**Game Assets**: Character images in `assets/characters/` with `-removebg-preview.png` format, sounds in `音效/` with Chinese filenames
+**Game Assets**: Character images in `assets/characters/` with `-removebg-preview.png` format, sounds in `音效/` with Chinese filenames, victory star asset at project root
 
 ## 📋 Code Style Requirements
 

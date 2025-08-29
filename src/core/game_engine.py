@@ -121,8 +121,10 @@ class GameEngine:
         \n
         重置所有遊戲狀態並創建新的遊戲物件\n
         """
-        # 重置遊戲狀態
-        self.state_manager.change_state("playing")
+        # 強制設置為遊戲狀態（避免狀態轉換檢查）
+        self.state_manager.previous_state = self.state_manager.current_state
+        self.state_manager.current_state = GAME_STATES["playing"]
+        self.state_manager.state_change_time = pygame.time.get_ticks()
         self._init_game_state()
 
         # 創建玩家（使用選擇的角色）
@@ -168,6 +170,156 @@ class GameEngine:
         self.game_ui.add_message(
             f"{level_config['description']}", "info", COLORS["yellow"]
         )
+
+    def restart_current_level(self):
+        """
+        重新開始當前關卡\n
+        \n
+        保持當前角色、難度、場景設定，重置關卡進度\n
+        """
+        # 重置關卡相關狀態
+        self.level_enemies_killed = 0
+        self.game_completed = False
+
+        # 重置玩家狀態
+        if self.player:
+            self.player.health = self.player.max_health
+            self.player.victory_star_collected = False
+            # 重置玩家位置
+            self.player.x = SCREEN_WIDTH // 2 - PLAYER_SIZE // 2
+            self.player.y = SCREEN_HEIGHT - 100
+            # 重置武器為預設
+            self.player.current_weapon = "pistol"
+            # 重新裝滿彈藥
+            if "pistol" in self.player.weapons:
+                weapon_config = WEAPON_CONFIGS["pistol"]
+                self.player.weapons["pistol"]["current_ammo"] = weapon_config["max_ammo"]
+
+        # 清空敵人和子彈
+        self.enemies.clear()
+        self.bullet_manager.clear_all_bullets()
+        self.powerup_manager.clear_all_powerups()
+
+        # 重新生成敵人
+        self._spawn_enemy()
+
+        # 強制設置回遊戲狀態（避免狀態轉換檢查）
+        self.state_manager.previous_state = self.state_manager.current_state
+        self.state_manager.current_state = GAME_STATES["playing"]
+        self.state_manager.state_change_time = pygame.time.get_ticks()
+        print("🔄 重新開始當前關卡 - 強制回到遊戲狀態")
+
+        # 顯示重新開始訊息
+        level_config = LEVEL_CONFIGS[self.selected_difficulty][self.current_level]
+        self.game_ui.add_message(
+            f"重新開始 - {level_config['name']}", "info", COLORS["blue"]
+        )
+
+    def restart_from_character_select(self):
+        """
+        回到角色選擇重新開始\n
+        \n
+        重置所有設定，回到角色選擇畫面\n
+        """
+        # 重置遊戲設定為預設值
+        self.current_level = 1
+        self.score = 0
+        self.level_enemies_killed = 0
+        self.game_completed = False
+
+        # 清空遊戲物件
+        self.enemies.clear()
+        self.bullet_manager.clear_all_bullets()
+        self.powerup_manager.clear_all_powerups()
+
+        # 重置玩家
+        self.player = None
+
+        # 直接設置狀態，避免轉換檢查
+        self.state_manager.previous_state = self.state_manager.current_state
+        self.state_manager.current_state = GAME_STATES["character_select"]
+        self.state_manager.state_change_time = pygame.time.get_ticks()
+        
+        # 設置UI
+        self.selection_ui.current_selection_type = "character"
+        self.selection_ui.reset_selection()
+
+        print("🔄 回到角色選擇")
+
+    def restart_from_difficulty_select(self):
+        """
+        回到難度選擇重新開始\n
+        \n
+        保持角色選擇，重置難度和場景，回到難度選擇畫面\n
+        """
+        # 重置遊戲狀態為預設值
+        self.current_level = 1
+        self.score = 0
+        self.level_enemies_killed = 0
+        self.game_completed = False
+        
+        # 重置難度和場景為預設值（保持角色選擇）
+        self.selected_difficulty = "easy"
+        self.selected_scene = "lava"
+        
+        # 清空遊戲物件
+        self.enemies.clear()
+        self.bullet_manager.clear_all_bullets()
+        self.powerup_manager.clear_all_powerups()
+        
+        # 重置玩家
+        self.player = None
+        
+        # 直接設置狀態，避免轉換檢查
+        self.state_manager.previous_state = self.state_manager.current_state
+        self.state_manager.current_state = GAME_STATES["difficulty_select"]
+        self.state_manager.state_change_time = pygame.time.get_ticks()
+        
+        # 設置UI - 不調用reset_selection以免重置選擇類型
+        self.selection_ui.current_selection_type = "difficulty"
+        # 手動重置只有必要的選擇狀態
+        self.selection_ui.selected_difficulty = None
+        self.selection_ui.selected_scene = None
+        self.selection_ui.difficulty_index = 0
+        self.selection_ui.scene_index = 0
+        
+        print(f"🔄 回到難度選擇，保持角色: {self.selected_character}")
+
+    def restart_from_scene_select(self):
+        """
+        回到場景選擇重新開始\n
+        \n
+        保持角色和難度選擇，重置場景，回到場景選擇畫面\n
+        """
+        # 重置遊戲狀態為預設值
+        self.current_level = 1
+        self.score = 0
+        self.level_enemies_killed = 0
+        self.game_completed = False
+        
+        # 重置場景為預設值（保持角色和難度選擇）
+        self.selected_scene = "lava"
+        
+        # 清空遊戲物件
+        self.enemies.clear()
+        self.bullet_manager.clear_all_bullets()
+        self.powerup_manager.clear_all_powerups()
+        
+        # 重置玩家
+        self.player = None
+        
+        # 直接設置狀態，避免轉換檢查
+        self.state_manager.previous_state = self.state_manager.current_state
+        self.state_manager.current_state = GAME_STATES["scene_select"]
+        self.state_manager.state_change_time = pygame.time.get_ticks()
+        
+        # 設置UI - 不調用reset_selection以免重置選擇類型
+        self.selection_ui.current_selection_type = "scene"
+        # 手動重置只有必要的選擇狀態
+        self.selection_ui.selected_scene = None
+        self.selection_ui.scene_index = 0
+        
+        print(f"🔄 回到場景選擇，保持角色: {self.selected_character}，難度: {self.selected_difficulty}")
 
     def reset_game_settings(self):
         """
@@ -227,6 +379,10 @@ class GameEngine:
         # 處理倒數計時狀態
         if self.state_manager.is_state("countdown"):
             self._update_countdown()
+            return
+
+        # 處理暫停狀態 - 暫停時不更新遊戲邏輯
+        if self.state_manager.is_state("paused"):
             return
 
         if not self.state_manager.is_state("playing"):
@@ -519,6 +675,8 @@ class GameEngine:
             self._draw_countdown()
         elif current_state == GAME_STATES["playing"]:
             self._draw_game()
+        elif current_state == GAME_STATES["paused"]:
+            self._draw_paused()
         elif current_state == GAME_STATES["game_over"]:
             self._draw_game_over()
 
@@ -567,7 +725,16 @@ class GameEngine:
             "1/2/3/4/5 - 切換武器",
             "Q - 使用角色技能（消耗10%生命值，冷卻10秒）",
             "C - 切換準心顯示",
-            "ESC - 返回選單",
+            "ESC - 暫停遊戲（遊戲中）/ 返回選單",
+            "",
+            "暫停選單操作:",
+            "ESC - 繼續遊戲",
+            "R - 重新開始當前關卡",
+            "S - 回到場景選擇",
+            "D - 回到難度選擇",
+            "C - 回到角色選擇",
+            "Q - 退出到主選單",
+            "",
             "遊戲結束後：R重新開始 或 滑鼠右鍵重新開始",
         ]
 
@@ -731,6 +898,68 @@ class GameEngine:
             info_surface = font_manager.render_text(info_text, "small", COLORS["white"])
             info_rect = info_surface.get_rect(
                 center=(SCREEN_WIDTH // 2, info_y_start + i * 25)
+            )
+            self.screen.blit(info_surface, info_rect)
+
+    def _draw_paused(self):
+        """
+        繪製暫停畫面\n
+        \n
+        顯示暫停選單，背景是暫停前的遊戲畫面（變暗）\n
+        """
+        # 先繪製遊戲畫面作為背景
+        self._draw_game()
+
+        # 添加半透明暗色覆蓋層
+        overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+        overlay.set_alpha(180)  # 設置透明度
+        overlay.fill(COLORS["black"])
+        self.screen.blit(overlay, (0, 0))
+
+        # 暫停標題
+        pause_title = "遊戲暫停"
+        title_surface = font_manager.render_text(pause_title, "large", COLORS["white"])
+        title_rect = title_surface.get_rect(center=(SCREEN_WIDTH // 2, 120))
+        self.screen.blit(title_surface, title_rect)
+
+        # 暫停時間顯示
+        pause_duration = self.state_manager.get_pause_duration()
+        time_text = f"暫停時間: {pause_duration:.1f} 秒"
+        time_surface = font_manager.render_text(time_text, "medium", COLORS["gray"])
+        time_rect = time_surface.get_rect(center=(SCREEN_WIDTH // 2, 160))
+        self.screen.blit(time_surface, time_rect)
+
+        # 暫停選單選項
+        menu_items = [
+            ("按 ESC 繼續遊戲", COLORS["green"]),
+            ("按 R 重新開始當前關卡", COLORS["yellow"]),
+            ("按 S 回到場景選擇", COLORS["blue"]),
+            ("按 D 回到難度選擇", COLORS["purple"]),
+            ("按 C 回到角色選擇", COLORS["orange"]),
+            ("按 Q 退出到主選單", COLORS["red"]),
+        ]
+
+        menu_start_y = 200
+        for i, (item_text, item_color) in enumerate(menu_items):
+            item_surface = font_manager.render_text(item_text, "medium", item_color)
+            item_rect = item_surface.get_rect(
+                center=(SCREEN_WIDTH // 2, menu_start_y + i * 35)
+            )
+            self.screen.blit(item_surface, item_rect)
+
+        # 當前遊戲狀態資訊
+        info_start_y = 420
+        info_items = [
+            f"關卡: {self.current_level}",
+            f"分數: {self.score}",
+            f"敵人擊殺: {self.level_enemies_killed}",
+            f"遊戲時間: {self.game_stats.get('game_time', 0):.1f} 秒",
+        ]
+
+        for i, info_text in enumerate(info_items):
+            info_surface = font_manager.render_text(info_text, "small", COLORS["white"])
+            info_rect = info_surface.get_rect(
+                center=(SCREEN_WIDTH // 2, info_start_y + i * 25)
             )
             self.screen.blit(info_surface, info_rect)
 
