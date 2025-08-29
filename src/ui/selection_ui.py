@@ -485,7 +485,9 @@ class SelectionUI:
                 ]
                 pygame.draw.polygon(screen, (169, 169, 169), points)
 
-    def _draw_difficulty_card(self, screen, difficulty_config, x, y, is_selected, card_width=200):
+    def _draw_difficulty_card(
+        self, screen, difficulty_config, x, y, is_selected, card_width=200
+    ):
         """
         繪製難度卡片
 
