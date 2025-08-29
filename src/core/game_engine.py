@@ -193,7 +193,9 @@ class GameEngine:
             # 重新裝滿彈藥
             if "pistol" in self.player.weapons:
                 weapon_config = WEAPON_CONFIGS["pistol"]
-                self.player.weapons["pistol"]["current_ammo"] = weapon_config["max_ammo"]
+                self.player.weapons["pistol"]["current_ammo"] = weapon_config[
+                    "max_ammo"
+                ]
 
         # 清空敵人和子彈
         self.enemies.clear()
@@ -239,7 +241,7 @@ class GameEngine:
         self.state_manager.previous_state = self.state_manager.current_state
         self.state_manager.current_state = GAME_STATES["character_select"]
         self.state_manager.state_change_time = pygame.time.get_ticks()
-        
+
         # 設置UI
         self.selection_ui.current_selection_type = "character"
         self.selection_ui.reset_selection()
@@ -257,24 +259,24 @@ class GameEngine:
         self.score = 0
         self.level_enemies_killed = 0
         self.game_completed = False
-        
+
         # 重置難度和場景為預設值（保持角色選擇）
         self.selected_difficulty = "easy"
         self.selected_scene = "lava"
-        
+
         # 清空遊戲物件
         self.enemies.clear()
         self.bullet_manager.clear_all_bullets()
         self.powerup_manager.clear_all_powerups()
-        
+
         # 重置玩家
         self.player = None
-        
+
         # 直接設置狀態，避免轉換檢查
         self.state_manager.previous_state = self.state_manager.current_state
         self.state_manager.current_state = GAME_STATES["difficulty_select"]
         self.state_manager.state_change_time = pygame.time.get_ticks()
-        
+
         # 設置UI - 不調用reset_selection以免重置選擇類型
         self.selection_ui.current_selection_type = "difficulty"
         # 手動重置只有必要的選擇狀態
@@ -282,7 +284,7 @@ class GameEngine:
         self.selection_ui.selected_scene = None
         self.selection_ui.difficulty_index = 0
         self.selection_ui.scene_index = 0
-        
+
         print(f"🔄 回到難度選擇，保持角色: {self.selected_character}")
 
     def restart_from_scene_select(self):
@@ -296,30 +298,32 @@ class GameEngine:
         self.score = 0
         self.level_enemies_killed = 0
         self.game_completed = False
-        
+
         # 重置場景為預設值（保持角色和難度選擇）
         self.selected_scene = "lava"
-        
+
         # 清空遊戲物件
         self.enemies.clear()
         self.bullet_manager.clear_all_bullets()
         self.powerup_manager.clear_all_powerups()
-        
+
         # 重置玩家
         self.player = None
-        
+
         # 直接設置狀態，避免轉換檢查
         self.state_manager.previous_state = self.state_manager.current_state
         self.state_manager.current_state = GAME_STATES["scene_select"]
         self.state_manager.state_change_time = pygame.time.get_ticks()
-        
+
         # 設置UI - 不調用reset_selection以免重置選擇類型
         self.selection_ui.current_selection_type = "scene"
         # 手動重置只有必要的選擇狀態
         self.selection_ui.selected_scene = None
         self.selection_ui.scene_index = 0
-        
-        print(f"🔄 回到場景選擇，保持角色: {self.selected_character}，難度: {self.selected_difficulty}")
+
+        print(
+            f"🔄 回到場景選擇，保持角色: {self.selected_character}，難度: {self.selected_difficulty}"
+        )
 
     def reset_game_settings(self):
         """
@@ -804,6 +808,7 @@ class GameEngine:
             self.current_level,
             self.level_enemies_killed,
             self.powerup_manager,
+            self.bullet_manager,
         )
 
     def _draw_game_over(self):

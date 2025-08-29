@@ -184,6 +184,7 @@ KEYS = {
     "weapon_4": pygame.K_4,
     "weapon_5": pygame.K_5,
     "skill": pygame.K_q,
+    "use_health_pack": pygame.K_e,  # E 鍵使用補血包
     # 滑鼠控制相關
     "mouse_fire": 1,  # 滑鼠右鍵（pygame.BUTTON_RIGHT）
 }

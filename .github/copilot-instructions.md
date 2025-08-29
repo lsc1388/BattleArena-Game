@@ -92,12 +92,14 @@ self.is_active = True  # For bullets, powerups
 ```python
 # BulletManager handles all bullet lifecycle
 self.bullet_manager.create_bullet(x, y, angle, speed, damage, owner)
+self.bullet_manager.create_skill_bullet(x, y, angle, speed, damage, owner, skill_type, effect_color, enemies, target_enemy)
 self.bullet_manager.update(screen_width, screen_height)
 self.bullet_manager.draw(screen)
 
 # PowerUpManager handles spawning and pickup logic
 self.powerup_manager.spawn_powerup_on_enemy_death(x, y)
 self.powerup_manager.spawn_victory_star_on_boss_death(boss_x, boss_y)
+self.powerup_manager.check_player_pickups(player)
 ```
 
 **Safe Entity Removal Pattern**:
@@ -136,7 +138,19 @@ for entity in entities[:]:  # Create copy for safe iteration
 **Skill System**: 3-second duration skills with unique visual effects:
 - All skills cost 10% max health, 10-second cooldown
 - Use `Player.use_skill()` and check `Player.is_skill_active()`
-- Each character has distinct particle/beam effects
+- Each character has distinct particle/beam effects and auto-tracking bullets
+- Skill bullets use `SkillBullet` class with auto-tracking, piercing, and custom visual effects
+- Skills create one tracking bullet per alive enemy for maximum targeting efficiency
+
+**Bullet System Architecture**: Two-tier bullet hierarchy for different gameplay mechanics:
+- `Bullet`: Standard projectiles for weapons with direct trajectory and collision detection
+- `SkillBullet`: Advanced tracking projectiles that auto-target enemies, can pierce multiple targets, and have custom visual effects
+- Both managed by `BulletManager` with separate creation methods (`create_bullet` vs `create_skill_bullet`)
+
+**Enemy AI Behavior System**: Three-tier difficulty with distinct behavior patterns:
+- AI configs control accuracy, fire_rate, move_pattern, and health per difficulty level
+- Enemy types (zombie, alien, boss) have unique damage, attack frequency, and visual characteristics
+- Boss enemies have special burst attacks and enhanced health/damage values
 
 **State Machine Flow**: Menu → character_select → difficulty_select → scene_select → countdown → playing → game_over (see `GameEngine`)
 
@@ -164,9 +178,14 @@ for entity in entities[:]:  # Create copy for safe iteration
 
 **Debug Keys**: F1 (spawn boss), F2 (complete level), H (toggle health display), C (toggle crosshair), +/- (adjust player health in menu)
 
-**Game Controls**: WASD (movement), Mouse (aim/shoot), Q (skill), R (reload), 1-5 (weapons), ESC (menu), Right-click (restart game)
+**Game Controls**: WASD (movement), Mouse (aim/shoot), Q (skill), R (reload), 1-5 (weapons), ESC (menu), Right-click (restart game), E (use health pack)
 
 **Game Assets**: Character images in `assets/characters/` with `-removebg-preview.png` format, sounds in `音效/` with Chinese filenames, victory star asset at project root
+
+**Configuration Validation**: All game values centralized in `src/config.py` - modify configurations rather than hardcoding values
+- Test configuration changes by running the game directly with `python main.py`
+- Use existing config patterns for new features (e.g., add to `WEAPON_CONFIGS` for new weapons)
+- Character attributes are multipliers (0.7 = 70%, 1.3 = 130%) applied to base values
 
 ## 📋 Code Style Requirements
 
@@ -192,5 +211,8 @@ for entity in entities[:]:  # Create copy for safe iteration
 - Test files are for manual verification, not automated testing
 - Asset paths must match actual file names (case-sensitive)
 - Sound files in `音效/` directory use Chinese naming convention
+- Use `SkillBullet` for auto-tracking projectiles, regular `Bullet` for direct shots
+- Always check `is_alive` and `is_active` before processing entities
+- Enemy AI behavior is controlled by difficulty configs - don't hardcode AI logic
 
 ````

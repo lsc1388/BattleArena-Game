@@ -240,6 +240,15 @@ class InputManager:
 
         return self.is_key_just_pressed("skill")
 
+    def is_use_health_pack_input(self):
+        """
+        檢查使用補血包輸入\n
+        \n
+        回傳:\n
+        bool: 是否按下使用補血包按鍵（E鍵）\n
+        """
+        return self.is_key_just_pressed("use_health_pack")
+
     def set_input_lock(self, lock_type, locked):
         """
         設置輸入鎖定\n

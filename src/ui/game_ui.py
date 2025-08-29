@@ -45,7 +45,7 @@ class GameUI:
         self.health_bar_pos = (20, 120)  # 調整位置避免與關卡資訊重疊
         self.health_bar_size = (200, 20)
         self.weapon_info_pos = (20, 150)  # 相應調整武器資訊位置
-        self.powerup_list_pos = (20, 200)  # 相應調整強化效果位置
+        self.powerup_list_pos = (20, 230)  # 相應調整強化效果位置，考慮補血包顯示
         self.score_pos = (screen_width - 220, 20)
         self.skill_cooldown_pos = (screen_width - 220, 90)  # 調整位置避免與命中率重疊
 
@@ -94,6 +94,7 @@ class GameUI:
         current_level=1,
         level_enemies_killed=0,
         powerup_manager=None,
+        bullet_manager=None,
     ):
         """
         繪製所有UI元素\n
@@ -107,6 +108,7 @@ class GameUI:
         current_level (int): 當前關卡數\n
         level_enemies_killed (int): 當前關卡已擊殺敵人數\n
         powerup_manager: 道具管理器（可選）\n
+        bullet_manager: 子彈管理器（可選）\n
         """
         # 繪製關卡資訊（左上角）
         self._draw_level_info(screen, current_level, level_enemies_killed)
@@ -136,7 +138,7 @@ class GameUI:
         self._draw_crosshair(screen, player)
 
         # 繪製小地圖（可選）
-        self._draw_minimap(screen, player, enemies, powerup_manager)
+        self._draw_minimap(screen, player, enemies, powerup_manager, bullet_manager)
 
     def _draw_level_info(self, screen, current_level, level_enemies_killed):
         """
@@ -340,6 +342,15 @@ class GameUI:
         total_text = f"備彈: {weapon_info['total_ammo']}"
         text_surface = self.font_small.render(total_text, True, COLORS["white"])
         screen.blit(text_surface, (x, total_ammo_y))
+
+        # 補血包庫存顯示
+        health_pack_y = total_ammo_y + 25
+        health_pack_text = f"補血包: {player.health_pack_count}/5 (按E使用)"
+        health_pack_color = (
+            COLORS["green"] if player.health_pack_count > 0 else COLORS["gray"]
+        )
+        text_surface = self.font_small.render(health_pack_text, True, health_pack_color)
+        screen.blit(text_surface, (x, health_pack_y))
 
     def _draw_powerup_effects(self, screen, player):
         """
@@ -735,7 +746,9 @@ class GameUI:
             text_rect = text_surface.get_rect(center=(message_x, message_y))
             screen.blit(text_surface, text_rect)
 
-    def _draw_minimap(self, screen, player, enemies, powerup_manager=None):
+    def _draw_minimap(
+        self, screen, player, enemies, powerup_manager=None, bullet_manager=None
+    ):
         """
         繪製小地圖（右下角）\n
         \n
@@ -744,6 +757,7 @@ class GameUI:
         player: 玩家物件\n
         enemies: 敵人列表\n
         powerup_manager: 道具管理器（可選）\n
+        bullet_manager: 子彈管理器（可選）\n
         """
         # 小地圖設定
         minimap_size = 100
@@ -882,6 +896,43 @@ class GameUI:
                         pygame.draw.circle(
                             screen, COLORS["green"], (powerup_map_x, powerup_map_y), 2
                         )
+
+        # 繪製子彈位置
+        if bullet_manager:
+            for bullet in bullet_manager.bullets:
+                if bullet.is_active:
+                    bullet_map_x = minimap_x + int(bullet.x * scale_x)
+                    bullet_map_y = minimap_y + int(bullet.y * scale_y)
+
+                    # 根據子彈發射者決定顏色和大小
+                    if bullet.owner == "player":
+                        # 玩家子彈：黃色小點
+                        bullet_color = COLORS["yellow"]
+                        bullet_size = 1
+                    else:
+                        # 敵人子彈：紅色小點
+                        bullet_color = COLORS["red"]
+                        bullet_size = 1
+
+                    # 技能子彈使用特殊顯示
+                    if hasattr(bullet, "skill_type"):
+                        # 技能子彈：使用技能顏色且較大
+                        bullet_color = bullet.effect_color
+                        bullet_size = 2
+                        # 在小地圖上繪製閃爍效果
+                        current_time = pygame.time.get_ticks()
+                        if (current_time // 150) % 2 == 0:  # 每150ms閃爍
+                            pygame.draw.circle(
+                                screen,
+                                bullet_color,
+                                (bullet_map_x, bullet_map_y),
+                                bullet_size + 1,
+                            )
+
+                    # 繪製子彈點
+                    pygame.draw.circle(
+                        screen, bullet_color, (bullet_map_x, bullet_map_y), bullet_size
+                    )
 
     def add_message(self, text, message_type="info", color=None):
         """

@@ -81,6 +81,9 @@ class Player:
         # 勝利狀態
         self.victory_star_collected = False  # 是否收集到勝利星星
 
+        # 庫存系統 - 補血包庫存
+        self.health_pack_count = 0  # 玩家擁有的補血包數量
+
         # 技能系統
         self.skill_cooldown = 0
         self.last_skill_time = 0
@@ -546,10 +549,11 @@ class Player:
                 weapon_state["current_ammo"] = weapon_config["max_ammo"]
                 weapon_state["total_ammo"] = weapon_config["max_ammo"] * 3
         elif powerup_type == "health_pack":
-            # 立即回復血量
-            effect_config = POWERUP_EFFECTS[powerup_type]
-            heal_amount = effect_config["heal_amount"]
-            self.heal(heal_amount)
+            # 補血包改為加入庫存，而非立即使用
+            self.health_pack_count += 1
+            # 最多只能攜帶5個補血包
+            if self.health_pack_count > 5:
+                self.health_pack_count = 5
         elif powerup_type == "victory_star":
             # 勝利星星：設置勝利標記
             self.victory_star_collected = True
@@ -745,6 +749,49 @@ class Player:
         # 確保生命值不會超過最大值
         if self.health > self.max_health:
             self.health = self.max_health
+
+    def use_health_pack(self):
+        """
+        使用庫存中的補血包來回復生命值\n
+        \n
+        回傳:\n
+        dict: 使用結果，包含是否成功和相關訊息\n
+        """
+        # 檢查是否有補血包庫存
+        if self.health_pack_count <= 0:
+            return {
+                "success": False,
+                "reason": "沒有補血包",
+                "health_pack_count": self.health_pack_count,
+            }
+
+        # 檢查血量是否已滿
+        if self.health >= self.max_health:
+            return {
+                "success": False,
+                "reason": "血量已滿",
+                "health_pack_count": self.health_pack_count,
+            }
+
+        # 使用補血包
+        self.health_pack_count -= 1
+
+        # 從配置中獲取回血量
+        heal_amount = POWERUP_EFFECTS["health_pack"]["heal_amount"]
+        old_health = self.health
+        self.heal(heal_amount)
+        actual_heal = self.health - old_health
+
+        # 播放補血音效
+        sound_manager.play_powerup_pickup_sound()
+
+        return {
+            "success": True,
+            "heal_amount": actual_heal,
+            "health_pack_count": self.health_pack_count,
+            "current_health": self.health,
+            "max_health": self.max_health,
+        }
 
     def update(self, screen_width, screen_height):
         """

@@ -228,6 +228,8 @@ class EventHandler:
                 self.game_engine.game_ui.add_message("切換至衝鋒槍", "info")
         elif key == KEYS["skill"]:
             self._handle_skill_activation()
+        elif key == KEYS["use_health_pack"]:
+            self._handle_use_health_pack()
         elif key == pygame.K_c:
             # 切換準心顯示
             self.game_engine.game_ui.crosshair_enabled = (
@@ -325,6 +327,30 @@ class EventHandler:
             else:
                 self.game_engine.game_ui.add_message(
                     skill_result["reason"], "info", COLORS["yellow"]
+                )
+
+    def _handle_use_health_pack(self):
+        """
+        處理使用補血包的邏輯\n
+        """
+        if self.game_engine.player:
+            result = self.game_engine.player.use_health_pack()
+            if result["success"]:
+                # 成功使用補血包
+                self.game_engine.game_ui.add_message(
+                    f"使用補血包 +{result['heal_amount']} HP",
+                    "healing",
+                    COLORS["green"],
+                )
+                self.game_engine.game_ui.add_message(
+                    f"剩餘補血包: {result['health_pack_count']}",
+                    "info",
+                    COLORS["white"],
+                )
+            else:
+                # 使用失敗
+                self.game_engine.game_ui.add_message(
+                    result["reason"], "warning", COLORS["yellow"]
                 )
 
     def _spawn_boss_for_testing(self):

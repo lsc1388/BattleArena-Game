@@ -136,7 +136,12 @@ class PowerUp:
 
         # 回傳效果描述
         effect_config = POWERUP_EFFECTS[self.powerup_type]
-        return f"獲得 {effect_config['name']}!"
+
+        if self.powerup_type == "health_pack":
+            # 補血包改為庫存提示
+            return f"獲得 {effect_config['name']}! (按E使用)"
+        else:
+            return f"獲得 {effect_config['name']}!"
 
     def draw(self, screen):
         """
