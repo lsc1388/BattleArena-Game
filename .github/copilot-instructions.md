@@ -40,6 +40,8 @@ from src.utils.sound_manager import sound_manager
 sound_manager.play_weapon_sound(weapon_type)  # Auto-maps weapon to sound
 sound_manager.play_victory_sound()  # Special game events
 sound_manager.play_sound("race_start")  # Direct sound name
+sound_manager.play_level3_boss_music()  # Level 3 background music
+sound_manager.stop_background_music()  # Stop background music
 ```
 
 **Collision System**: All interactions handled by `CollisionSystem.check_all_collisions()`. Never implement custom collision loops:
@@ -55,13 +57,13 @@ collision_results = self.collision_system.check_all_collisions(
 - `WEAPON_CONFIGS`: damage, ammo, reload times, fire_rate, special properties (spread, bullet_count)
 - `CHARACTER_CONFIGS`: skills, colors, cooldowns, attributes (attack_power, fire_rate, speed, health multipliers)
 - `AI_CONFIGS`: difficulty levels, accuracy, behavior patterns, health
-- `POWERUP_EFFECTS`: duration, multipliers, instant effects, weapon unlocks
-- `LEVEL_CONFIGS`: enemy types, counts, descriptions, completion messages (by difficulty: easy/medium/hard)
+- `POWERUP_EFFECTS`: duration, multipliers, instant effects, weapon unlocks, **victory_star** (victory trigger)
+- `LEVEL_CONFIGS`: enemy types, counts, descriptions, completion messages, **boss flags** (by difficulty: easy/medium/hard)
 - `SCENE_CONFIGS`: background colors, accent colors, descriptions
-- `AI_ENEMY_TYPES`: health, speed/accuracy modifiers, damage, attack frequency
+- `AI_ENEMY_TYPES`: health, speed/accuracy modifiers, damage, attack frequency, **boss configuration**
 - `DIFFICULTY_CONFIGS`: enemy health multipliers and descriptions
 - `FONT_CONFIGS`: Chinese font preferences and size mappings
-- `SOUND_CONFIGS`: audio file paths, volumes, descriptions for all game sounds
+- `SOUND_CONFIGS`: audio file paths, volumes, descriptions for all game sounds, **level3_boss_music**
 
 ## 🎯 Entity System Patterns
 
@@ -109,13 +111,26 @@ for entity in entities[:]:  # Create copy for safe iteration
 
 **Character System**: Three distinct characters with unique attributes and skills:
 - 貓 (Cat): High attack (130%), low fire rate (70%), laser skill (yellow beam, 100 damage)
-- 狗 (Dog): Balanced stats (100%), flame skill (fire particles, 75 damage)  
+- 狗 (Dog): Balanced stats (100%), flame skill (fire particles, 75 damage)
 - 狼 (Wolf): High fire rate (150%), low attack (80%), ice skill (crystal effects, 125 damage)
 
 **Level Progression System**: Sequential enemy waves with automatic progression:
 - Level 1: 3 zombies (25 damage, 2s attack frequency)
 - Level 2: 5 aliens (35 damage, 3s attack frequency)
+- **Level 3**: Mixed enemies + Boss battle with victory star collection
 - Track `level_enemies_killed` vs `LEVEL_CONFIGS[difficulty][level]["enemy_count"]`
+
+**Boss Battle Mechanics**: Level 3 features special boss encounter:
+- Boss spawns after regular enemies are defeated
+- Boss death triggers `victory_star` PowerUp spawn
+- Player must collect victory star to complete the game
+- Background music automatically plays for Level 3 (`level3_boss_music`)
+
+**Victory Star System**: Special PowerUp for game completion:
+- Only spawns when boss dies (`powerup_manager.spawn_victory_star_on_boss_death()`)
+- Larger size (40px vs 20px), never expires (`lifetime = float('inf')`)
+- Collection sets `player.victory_star_collected = True` for game victory
+- Uses external image asset `invincibility-star-v0-bveezlamy4bc1-removebg-preview.png`
 
 **Skill System**: 3-second duration skills with unique visual effects:
 - All skills cost 10% max health, 10-second cooldown

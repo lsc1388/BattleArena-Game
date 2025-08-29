@@ -51,7 +51,7 @@ WEAPON_CONFIGS = {
         "fire_rate": 300,  # 毫秒
         "damage": 25,
         "bullet_speed": 10,
-        "image_path": "product20200405201930-p_sub1_130322112553-removebg-preview.png",  # 手槍圖片路徑
+        "image_path": "assets/weapons/product20200405201930-p_sub1_130322112553__1_-removebg-preview.png",  # 手槍圖片路徑
     },
     "rifle": {
         "name": "步槍",
@@ -60,7 +60,7 @@ WEAPON_CONFIGS = {
         "fire_rate": 150,
         "damage": 40,
         "bullet_speed": 12,
-        "image_path": "M4_Carbine_with_M203_Grenade_Launcher.png",  # 步槍圖片路徑
+        "image_path": "assets/weapons/M4_Carbine_with_M203_Grenade_Launcher-removebg-preview (1).png",  # 步槍圖片路徑
     },
     "shotgun": {
         "name": "散彈槍",
@@ -122,6 +122,12 @@ POWERUP_EFFECTS = {
         "name": "補血包",
         "instant": True,  # 立即效果
         "heal_amount": 50,  # 補血量
+    },
+    "victory_star": {
+        "name": "勝利星星",
+        "instant": True,  # 立即效果
+        "victory_trigger": True,  # 觸發勝利
+        "description": "收集後即可獲得勝利！",
     },
 }
 
@@ -260,7 +266,8 @@ SCENE_CONFIGS = {
     "lava": {
         "name": "岩漿場景",
         "emoji": "🌋",
-        "background_color": (139, 0, 0),  # 深紅色
+        "background_image": "assets/scenes/lava/dreamina-2025-08-29-4841-lava.jpeg",  # 岩漿背景圖片
+        "background_color": (139, 0, 0),  # 深紅色（備用）
         "accent_color": (255, 69, 0),  # 橙紅色
         "effect": "heat_damage",  # 可能的環境效果
         "description": "炎熱的岩漿地帶",
@@ -268,7 +275,8 @@ SCENE_CONFIGS = {
     "mountain": {
         "name": "高山場景",
         "emoji": "⛰️",
-        "background_color": (105, 105, 105),  # 灰色
+        "background_image": "assets/scenes/mountain/dreamina-2025-08-29-1967-moutain.jpeg",  # 高山背景圖片
+        "background_color": (105, 105, 105),  # 灰色（備用）
         "accent_color": (169, 169, 169),  # 淺灰色
         "effect": "thin_air",  # 可能的環境效果
         "description": "高聳的山峰地帶",
@@ -276,7 +284,8 @@ SCENE_CONFIGS = {
     "ice": {
         "name": "冰原場景",
         "emoji": "🧊",
-        "background_color": (70, 130, 180),  # 鋼藍色
+        "background_image": "assets/scenes/ice/dreamina-2025-08-29-7735-ice sheet - 複製.jpeg",  # 冰原背景圖片
+        "background_color": (70, 130, 180),  # 鋼藍色（備用）
         "accent_color": (173, 216, 230),  # 淺藍色
         "effect": "slippery",  # 可能的環境效果
         "description": "寒冷的冰雪世界",
@@ -284,7 +293,8 @@ SCENE_CONFIGS = {
     "desert": {
         "name": "沙漠場景",
         "emoji": "🏜️",
-        "background_color": (238, 203, 173),  # 沙漠色
+        "background_image": "assets/scenes/desert/dreamina-2025-08-29-2661-desert - 複製.jpeg",  # 沙漠背景圖片
+        "background_color": (238, 203, 173),  # 沙漠色（備用）
         "accent_color": (255, 218, 185),  # 淺沙色
         "effect": "heat_wave",  # 可能的環境效果
         "description": "炎熱乾燥的沙漠",

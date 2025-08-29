@@ -370,11 +370,71 @@ class SelectionUI:
         pygame.draw.rect(screen, card_color, card_rect)
         pygame.draw.rect(screen, border_color, card_rect, border_width)
 
-        # 場景預覽 (使用幾何形狀代替圖片)
+        # 場景預覽（使用真實背景圖片）
         preview_rect = pygame.Rect(x + 20, y + 20, card_width - 40, 100)
-        pygame.draw.rect(screen, scene_config["background_color"], preview_rect)
-        pygame.draw.rect(screen, scene_config["accent_color"], preview_rect, 3)
 
+        # 嘗試載入場景預覽圖片
+        from src.utils.image_manager import image_manager
+
+        scene_key = None
+        for key, config in SCENE_CONFIGS.items():
+            if config == scene_config:
+                scene_key = key
+                break
+
+        if scene_key:
+            preview_image = image_manager.load_scene_preview(
+                scene_key, (card_width - 40, 100)
+            )
+
+            if preview_image:
+                # 使用真實背景圖片
+                screen.blit(preview_image, (x + 20, y + 20))
+                # 添加邊框
+                pygame.draw.rect(screen, scene_config["accent_color"], preview_rect, 3)
+            else:
+                # 圖片載入失敗，使用備用顏色和幾何形狀
+                pygame.draw.rect(screen, scene_config["background_color"], preview_rect)
+                pygame.draw.rect(screen, scene_config["accent_color"], preview_rect, 3)
+                self._draw_scene_fallback_elements(screen, scene_config, x, y)
+        else:
+            # 沒有找到場景配置，使用備用顯示
+            pygame.draw.rect(screen, scene_config["background_color"], preview_rect)
+            pygame.draw.rect(screen, scene_config["accent_color"], preview_rect, 3)
+            self._draw_scene_fallback_elements(screen, scene_config, x, y)
+
+        # 場景名稱
+        name_surface = font_manager.render_text(
+            scene_config["name"], "medium", COLORS["white"]
+        )
+        name_rect = name_surface.get_rect(center=(x + card_width // 2, y + 130))
+        screen.blit(name_surface, name_rect)
+
+        # 場景描述
+        desc_surface = font_manager.render_text(
+            scene_config["description"], "small", COLORS["white"]
+        )
+        desc_rect = desc_surface.get_rect(center=(x + card_width // 2, y + 155))
+        screen.blit(desc_surface, desc_rect)
+
+        # 選中提示
+        if is_selected:
+            select_text = "按 ENTER 開始遊戲"
+            select_surface = font_manager.render_text(
+                select_text, "tiny", COLORS["yellow"]
+            )
+            select_rect = select_surface.get_rect(center=(x + card_width // 2, y + 180))
+            screen.blit(select_surface, select_rect)
+
+    def _draw_scene_fallback_elements(self, screen, scene_config, x, y):
+        """
+        繪製場景的備用裝飾元素（當背景圖片載入失敗時使用）
+
+        參數:
+        screen: pygame顯示表面
+        scene_config (dict): 場景配置
+        x, y (int): 卡片位置
+        """
         # 添加場景特色元素
         if "lava" in scene_config.get("effect", ""):
             # 岩漿效果 - 紅色圓點
@@ -404,29 +464,6 @@ class SelectionUI:
                     (mountain_x + 30, mountain_y),
                 ]
                 pygame.draw.polygon(screen, (169, 169, 169), points)
-
-        # 場景名稱
-        name_surface = font_manager.render_text(
-            scene_config["name"], "medium", COLORS["white"]
-        )
-        name_rect = name_surface.get_rect(center=(x + card_width // 2, y + 130))
-        screen.blit(name_surface, name_rect)
-
-        # 場景描述
-        desc_surface = font_manager.render_text(
-            scene_config["description"], "small", COLORS["white"]
-        )
-        desc_rect = desc_surface.get_rect(center=(x + card_width // 2, y + 155))
-        screen.blit(desc_surface, desc_rect)
-
-        # 選中提示
-        if is_selected:
-            select_text = "按 ENTER 開始遊戲"
-            select_surface = font_manager.render_text(
-                select_text, "tiny", COLORS["yellow"]
-            )
-            select_rect = select_surface.get_rect(center=(x + card_width // 2, y + 180))
-            screen.blit(select_surface, select_rect)
 
     def _draw_difficulty_card(self, screen, difficulty_config, x, y, is_selected):
         """

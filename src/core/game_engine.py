@@ -136,12 +136,16 @@ class GameEngine:
             self.selected_character,
         )
 
+        # 重置勝利狀態
+        self.player.victory_star_collected = False
+
         # 重置敵人系統
         self.enemy_spawn_count = 1
         level_config = LEVEL_CONFIGS[self.selected_difficulty][self.current_level]
         self.current_level_enemy_counts = level_config.get("enemy_counts", {})
-        if "scene" in level_config:
-            self.selected_scene = level_config["scene"]
+        # 註解掉這行，讓遊戲保持玩家選擇的場景而不是使用關卡預設場景
+        # if "scene" in level_config:
+        #     self.selected_scene = level_config["scene"]
         self.enemies.clear()
 
         # 創建初始敵人
@@ -327,8 +331,22 @@ class GameEngine:
                 self.score += 100
                 enemies_killed_this_frame += 1
 
-                # 敵人死亡時可能掉落道具
-                self.powerup_manager.spawn_powerup_on_enemy_death(enemy.x, enemy.y)
+                # 檢查是否為BOSS
+                if enemy.enemy_type == "boss":
+                    # BOSS死亡時生成勝利星星
+                    self.powerup_manager.spawn_victory_star_on_boss_death(
+                        enemy.x, enemy.y
+                    )
+                    self.game_ui.add_message(
+                        "BOSS 已被擊敗！", "achievement", COLORS["purple"]
+                    )
+                    self.game_ui.add_message(
+                        "找到並收集勝利星星以獲得勝利！", "info", COLORS["yellow"]
+                    )
+                else:
+                    # 一般敵人死亡時可能掉落道具
+                    self.powerup_manager.spawn_powerup_on_enemy_death(enemy.x, enemy.y)
+
                 self.game_ui.add_message(f"+100 分", "achievement", COLORS["yellow"])
 
     def _update_skill_effects(self):
@@ -397,16 +415,27 @@ class GameEngine:
             boss_alive = any(
                 e.enemy_type == "boss" and e.is_alive for e in self.enemies
             )
+
+            # 所有一般敵人已被擊敗且BOSS已死亡
             if not boss_alive and self.level_enemies_killed >= level_config.get(
                 "enemy_count", 0
             ):
-                # 播放勝利音效
-                sound_manager.play_victory_sound()
-                self.game_ui.add_message(
-                    level_config["completion_message"], "achievement", COLORS["green"]
-                )
-                self.game_completed = True
-                self.enemies.clear()
+                # 檢查玩家是否收集到勝利星星
+                if (
+                    hasattr(self.player, "victory_star_collected")
+                    and self.player.victory_star_collected
+                ):
+                    # 播放勝利音效
+                    sound_manager.play_victory_sound()
+                    self.game_ui.add_message(
+                        level_config["completion_message"],
+                        "achievement",
+                        COLORS["green"],
+                    )
+                    self.game_completed = True
+                    self.enemies.clear()
+                    return
+                # 如果星星還在場上但玩家還沒收集，不結束遊戲
                 return
 
         # 一般關卡檢查
@@ -430,8 +459,9 @@ class GameEngine:
                 self.current_level_enemy_counts = next_level_config.get(
                     "enemy_counts", {}
                 )
-                if "scene" in next_level_config:
-                    self.selected_scene = next_level_config["scene"]
+                # 註解掉這行，讓遊戲保持玩家選擇的場景而不是使用關卡預設場景
+                # if "scene" in next_level_config:
+                #     self.selected_scene = next_level_config["scene"]
                 self.enemies.clear()
 
                 # 檢查是否進入第3關並播放專用音樂
@@ -563,14 +593,27 @@ class GameEngine:
                 and self.selected_scene in SCENE_CONFIGS
             ):
                 scene_config = SCENE_CONFIGS[self.selected_scene]
-                background_color = scene_config["background_color"]
+
+                # 嘗試載入場景背景圖片
+                from src.utils.image_manager import image_manager
+
+                background_image = image_manager.load_scene_background(
+                    self.selected_scene
+                )
+
+                if background_image:
+                    # 使用背景圖片
+                    self.screen.blit(background_image, (0, 0))
+                else:
+                    # 圖片載入失敗，使用備用顏色
+                    background_color = scene_config["background_color"]
+                    self.screen.fill(background_color)
             else:
                 background_color = COLORS["black"]
+                self.screen.fill(background_color)
         except Exception as e:
             print(f"場景背景設置錯誤: {e}, 使用預設黑色背景")
-            background_color = COLORS["black"]
-
-        self.screen.fill(background_color)
+            self.screen.fill(COLORS["black"])
 
         # 繪製遊戲物件
         if self.player:
@@ -617,17 +660,30 @@ class GameEngine:
                 and self.selected_scene in SCENE_CONFIGS
             ):
                 scene_config = SCENE_CONFIGS[self.selected_scene]
-                background_color = scene_config["background_color"]
+
+                # 嘗試載入場景背景圖片
+                from src.utils.image_manager import image_manager
+
+                background_image = image_manager.load_scene_background(
+                    self.selected_scene
+                )
+
+                if background_image:
+                    # 使用背景圖片
+                    self.screen.blit(background_image, (0, 0))
+                else:
+                    # 圖片載入失敗，使用備用顏色
+                    background_color = scene_config["background_color"]
+                    self.screen.fill(background_color)
+
                 accent_color = scene_config.get("accent_color", COLORS["white"])
             else:
-                background_color = COLORS["black"]
+                self.screen.fill(COLORS["black"])
                 accent_color = COLORS["white"]
         except Exception as e:
             print(f"場景背景設置錯誤: {e}, 使用預設黑色背景")
-            background_color = COLORS["black"]
+            self.screen.fill(COLORS["black"])
             accent_color = COLORS["white"]
-
-        self.screen.fill(background_color)
 
         # 計算剩餘倒數時間
         current_time = pygame.time.get_ticks()

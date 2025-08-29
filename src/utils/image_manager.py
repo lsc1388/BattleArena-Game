@@ -525,6 +525,128 @@ class ImageManager:
             character_type, size=(PLAYER_SIZE, PLAYER_SIZE), for_selection=False
         )
 
+    def load_scene_background(
+        self, scene_key, screen_size=(SCREEN_WIDTH, SCREEN_HEIGHT)
+    ):
+        """
+        載入場景背景圖片\n
+        \n
+        參數:\n
+        scene_key (str): 場景類型 ("lava", "mountain", "ice", "desert")\n
+        screen_size (tuple): 螢幕尺寸 (width, height)\n
+        \n
+        回傳:\n
+        pygame.Surface: 場景背景圖片，如果載入失敗則返回 None\n
+        """
+        # 建立快取鍵值
+        cache_key = f"scene_{scene_key}_{screen_size[0]}x{screen_size[1]}"
+
+        # 檢查快取
+        if cache_key in self.image_cache:
+            return self.image_cache[cache_key]
+
+        scene_config = SCENE_CONFIGS.get(scene_key)
+        if not scene_config or "background_image" not in scene_config:
+            # 沒有背景圖片配置
+            return None
+
+        image_path = scene_config["background_image"]
+
+        try:
+            # 嘗試載入圖片
+            full_path = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.dirname(__file__))), image_path
+            )
+
+            if not os.path.exists(full_path):
+                print(f"場景背景圖片檔案不存在: {full_path}")
+                return None
+
+            # 載入並處理圖片
+            raw_image = pygame.image.load(full_path)
+
+            # 檢查 pygame 顯示是否已初始化
+            try:
+                raw_image = raw_image.convert()
+            except pygame.error:
+                # 如果顯示未初始化，保持原格式
+                pass
+
+            # 縮放圖片到螢幕尺寸
+            scaled_image = pygame.transform.scale(raw_image, screen_size)
+
+            # 快取處理後的圖片
+            self.image_cache[cache_key] = scaled_image
+            print(f"✅ 成功載入場景背景圖片: {scene_key} - {image_path}")
+            return scaled_image
+
+        except pygame.error as e:
+            print(f"載入場景背景圖片失敗 ({scene_key}): {e}")
+            return None
+        except Exception as e:
+            print(f"處理場景背景圖片時發生錯誤 ({scene_key}): {e}")
+            return None
+
+    def load_scene_preview(self, scene_key, preview_size=(140, 100)):
+        """
+        載入場景選擇界面的預覽圖片\n
+        \n
+        參數:\n
+        scene_key (str): 場景類型 ("lava", "mountain", "ice", "desert")\n
+        preview_size (tuple): 預覽圖片尺寸 (width, height)\n
+        \n
+        回傳:\n
+        pygame.Surface: 場景預覽圖片，如果載入失敗則返回 None\n
+        """
+        # 建立快取鍵值
+        cache_key = f"scene_preview_{scene_key}_{preview_size[0]}x{preview_size[1]}"
+
+        # 檢查快取
+        if cache_key in self.image_cache:
+            return self.image_cache[cache_key]
+
+        scene_config = SCENE_CONFIGS.get(scene_key)
+        if not scene_config or "background_image" not in scene_config:
+            # 沒有背景圖片配置
+            return None
+
+        image_path = scene_config["background_image"]
+
+        try:
+            # 嘗試載入圖片
+            full_path = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.dirname(__file__))), image_path
+            )
+
+            if not os.path.exists(full_path):
+                print(f"場景預覽圖片檔案不存在: {full_path}")
+                return None
+
+            # 載入並處理圖片
+            raw_image = pygame.image.load(full_path)
+
+            # 檢查 pygame 顯示是否已初始化
+            try:
+                raw_image = raw_image.convert()
+            except pygame.error:
+                # 如果顯示未初始化，保持原格式
+                pass
+
+            # 縮放圖片到預覽尺寸
+            scaled_image = pygame.transform.scale(raw_image, preview_size)
+
+            # 快取處理後的圖片
+            self.image_cache[cache_key] = scaled_image
+            print(f"✅ 成功載入場景預覽圖片: {scene_key} - {image_path}")
+            return scaled_image
+
+        except pygame.error as e:
+            print(f"載入場景預覽圖片失敗 ({scene_key}): {e}")
+            return None
+        except Exception as e:
+            print(f"處理場景預覽圖片時發生錯誤 ({scene_key}): {e}")
+            return None
+
     def clear_cache(self):
         """
         清除圖片快取\n

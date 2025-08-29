@@ -39,19 +39,28 @@ class PowerUp:
         # 位置和尺寸設定
         self.x = x
         self.y = y
-        self.size = POWERUP_SIZE
+        # 勝利星星使用較大的尺寸
+        if powerup_type == "victory_star":
+            self.size = POWERUP_SIZE * 2  # 勝利星星比普通道具大一倍
+        else:
+            self.size = POWERUP_SIZE
 
         # 道具類型設定
         if powerup_type is None:
-            # 隨機選擇一種強化類型
-            self.powerup_type = random.choice(list(POWERUP_EFFECTS.keys()))
+            # 隨機選擇一種強化類型（不包含勝利星星）
+            available_types = [k for k in POWERUP_EFFECTS.keys() if k != "victory_star"]
+            self.powerup_type = random.choice(available_types)
         else:
             self.powerup_type = powerup_type
 
         # 狀態管理
         self.is_active = True
         self.spawn_time = pygame.time.get_ticks()
-        self.lifetime = 15000  # 15秒後消失
+        # 勝利星星永不消失，其他道具15秒後消失
+        if powerup_type == "victory_star":
+            self.lifetime = float("inf")  # 勝利星星永不消失
+        else:
+            self.lifetime = 15000  # 15秒後消失
 
         # 視覺效果
         self.pulse_timer = 0
@@ -194,6 +203,14 @@ class PowerUp:
             effect_color = COLORS["white"]
             self._draw_health_effect(screen, draw_x, draw_y, main_color, effect_color)
 
+        elif self.powerup_type == "victory_star":
+            # 勝利星星：金色系
+            main_color = COLORS.get("gold", COLORS["yellow"])
+            effect_color = COLORS["white"]
+            self._draw_victory_star_effect(
+                screen, draw_x, draw_y, main_color, effect_color
+            )
+
         # 繪製主體方塊
         pygame.draw.rect(screen, main_color, (draw_x, draw_y, self.size, self.size))
 
@@ -294,6 +311,78 @@ class PowerUp:
         # 繪製脈衝光環
         pulse_radius = self.size // 2 + int(abs(math.sin(self.pulse_timer * 0.12)) * 6)
         pygame.draw.circle(screen, main_color, (center_x, center_y), pulse_radius, 2)
+
+    def _draw_victory_star_effect(self, screen, x, y, main_color, effect_color):
+        """繪製勝利星星的特殊效果"""
+        center_x = int(x + self.size // 2)
+        center_y = int(y + self.size // 2)
+
+        # 載入星星圖片，如果失敗則畫一個星形
+        try:
+            # 嘗試載入外部星星圖片
+            star_image_path = "invincibility-star-v0-bveezlamy4bc1-removebg-preview.png"
+            star_image = pygame.image.load(star_image_path).convert_alpha()
+            # 調整圖片大小
+            star_image = pygame.transform.scale(star_image, (self.size, self.size))
+
+            # 根據時間旋轉星星
+            rotated_star = pygame.transform.rotate(star_image, self.rotation_angle)
+
+            # 計算旋轉後的位置（保持中心點不變）
+            rotated_rect = rotated_star.get_rect(center=(center_x, center_y))
+            screen.blit(rotated_star, rotated_rect)
+
+        except pygame.error:
+            # 如果圖片載入失敗，畫一個簡單的星形
+            self._draw_simple_star(screen, center_x, center_y, main_color)
+
+        # 繪製發光特效
+        for i in range(3):
+            glow_radius = (
+                self.size // 2 + i * 3 + int(abs(math.sin(self.pulse_timer * 0.2)) * 10)
+            )
+            glow_alpha = 50 - i * 15  # 逐漸透明
+            glow_color = (*main_color[:3], glow_alpha)  # 添加透明度
+
+            # 創建發光圓圈
+            glow_surface = pygame.Surface(
+                (glow_radius * 2, glow_radius * 2), pygame.SRCALPHA
+            )
+            pygame.draw.circle(
+                glow_surface, glow_color, (glow_radius, glow_radius), glow_radius, 2
+            )
+            screen.blit(glow_surface, (center_x - glow_radius, center_y - glow_radius))
+
+        # 繪製閃亮粒子效果
+        for i in range(8):
+            angle = i * 45 + self.rotation_angle * 2
+            distance = self.size // 2 + 15
+            particle_x = center_x + math.cos(math.radians(angle)) * distance
+            particle_y = center_y + math.sin(math.radians(angle)) * distance
+
+            # 粒子大小隨時間變化
+            particle_size = 2 + int(abs(math.sin(self.pulse_timer * 0.15 + i)) * 3)
+            pygame.draw.circle(
+                screen, effect_color, (int(particle_x), int(particle_y)), particle_size
+            )
+
+    def _draw_simple_star(self, screen, center_x, center_y, color):
+        """繪製簡單的星形圖案（當圖片載入失敗時使用）"""
+        # 五角星的點座標計算
+        outer_radius = self.size // 2 - 2
+        inner_radius = outer_radius // 2
+
+        points = []
+        for i in range(10):  # 五角星需要10個點
+            angle = i * 36 - 90 + self.rotation_angle  # 36度間隔，-90度讓星星正立
+            radius = outer_radius if i % 2 == 0 else inner_radius
+
+            x = center_x + math.cos(math.radians(angle)) * radius
+            y = center_y + math.sin(math.radians(angle)) * radius
+            points.append((int(x), int(y)))
+
+        # 繪製星形
+        pygame.draw.polygon(screen, color, points)
 
     def get_rect(self):
         """
@@ -475,6 +564,42 @@ class PowerUpManager:
             return self.spawn_powerup_at_position(enemy_x, enemy_y)
         return None
 
+    def spawn_victory_star_on_boss_death(self, boss_x, boss_y):
+        """
+        BOSS死亡時生成勝利星星\n
+        \n
+        參數:\n
+        boss_x (float): BOSS死亡位置 X 座標\n
+        boss_y (float): BOSS死亡位置 Y 座標\n
+        \n
+        回傳:\n
+        PowerUp: 生成的勝利星星物件\n
+        """
+        # 在BOSS位置生成勝利星星
+        victory_star = self.spawn_powerup_at_position(boss_x, boss_y, "victory_star")
+        return victory_star
+
+    def has_victory_star(self):
+        """
+        檢查場上是否有勝利星星\n
+        \n
+        回傳:\n
+        bool: 是否有勝利星星\n
+        """
+        return any(powerup.powerup_type == "victory_star" for powerup in self.powerups)
+
+    def get_victory_star(self):
+        """
+        取得勝利星星物件\n
+        \n
+        回傳:\n
+        PowerUp: 勝利星星物件，如果沒有則回傳 None\n
+        """
+        for powerup in self.powerups:
+            if powerup.powerup_type == "victory_star":
+                return powerup
+        return None
+
     def draw(self, screen):
         """
         繪製所有道具\n
@@ -565,6 +690,7 @@ class PowerUpManager:
             "machinegun_powerup": 0,
             "submachinegun_powerup": 0,
             "health_pack": 0,
+            "victory_star": 0,
         }
 
         for powerup in self.powerups:

@@ -78,6 +78,9 @@ class Player:
         # 強化效果系統
         self.powerups = {}
 
+        # 勝利狀態
+        self.victory_star_collected = False  # 是否收集到勝利星星
+
         # 技能系統
         self.skill_cooldown = 0
         self.last_skill_time = 0
@@ -547,7 +550,7 @@ class Player:
         套用強化效果\n
         \n
         參數:\n
-        powerup_type (str): 強化類型（'fire_boost', 'ammo_refill', 'scatter_shot', 'machinegun_powerup', 'submachinegun_powerup'）\n
+        powerup_type (str): 強化類型（'fire_boost', 'ammo_refill', 'scatter_shot', 'machinegun_powerup', 'submachinegun_powerup', 'victory_star'）\n
         """
         current_time = pygame.time.get_ticks()
 
@@ -562,6 +565,9 @@ class Player:
             effect_config = POWERUP_EFFECTS[powerup_type]
             heal_amount = effect_config["heal_amount"]
             self.heal(heal_amount)
+        elif powerup_type == "victory_star":
+            # 勝利星星：設置勝利標記
+            self.victory_star_collected = True
         elif powerup_type in ["machinegun_powerup", "submachinegun_powerup"]:
             # 武器解鎖效果
             effect_config = POWERUP_EFFECTS[powerup_type]
