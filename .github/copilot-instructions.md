@@ -21,8 +21,8 @@ Essential knowledge for AI coding agents to be immediately productive in this co
 - `src/utils/`: Shared utilities (FontManager singleton for Chinese text rendering, ImageManager for assets, SoundManager)
 - `src/core/`: Core systems (StateManager, EventHandler, InputManager) for game architecture
 - `src/config.py`: **All configuration data** - never hardcode game values
-- `assets/`: Character images (`characters/cat-removebg-preview.png`, etc.) and weapon sprites
-- `音效/`: Chinese-named sound directory with game audio files
+- `assets/`: Character images (`characters/character_cat.png`, etc.), weapon sprites, and sound files
+- `assets/sounds/`: Chinese-named sound directory with game audio files (not `音效/`)
 
 ## 🔒 Critical Integration Points (DO NOT MODIFY ARBITRARILY)
 
@@ -133,7 +133,7 @@ for entity in entities[:]:  # Create copy for safe iteration
 - Only spawns when boss dies (`powerup_manager.spawn_victory_star_on_boss_death()`)
 - Larger size (40px vs 20px), never expires (`lifetime = float('inf')`)
 - Collection sets `player.victory_star_collected = True` for game victory
-- Uses external image asset `invincibility-star-v0-bveezlamy4bc1-removebg-preview.png`
+- Uses specific image asset `assets/weapons/powerup_victory_star.png`
 
 **Skill System**: 3-second duration skills with unique visual effects:
 - All skills cost 10% max health, 10-second cooldown
@@ -180,7 +180,7 @@ for entity in entities[:]:  # Create copy for safe iteration
 
 **Game Controls**: WASD (movement), Mouse (aim/shoot), Q (skill), R (reload), 1-5 (weapons), ESC (menu), Right-click (restart game), E (use health pack)
 
-**Game Assets**: Character images in `assets/characters/` with `-removebg-preview.png` format, sounds in `音效/` with Chinese filenames, victory star asset at project root
+**Game Assets**: Character images in `assets/characters/` with `.png` format, sounds in `assets/sounds/` with Chinese filenames, weapon images in `assets/weapons/`
 
 **Configuration Validation**: All game values centralized in `src/config.py` - modify configurations rather than hardcoding values
 - Test configuration changes by running the game directly with `python main.py`
@@ -210,7 +210,7 @@ for entity in entities[:]:  # Create copy for safe iteration
 - Character attributes are multipliers applied to base values, not absolute values
 - Test files are for manual verification, not automated testing
 - Asset paths must match actual file names (case-sensitive)
-- Sound files in `音效/` directory use Chinese naming convention
+- Sound files in `assets/sounds/` directory use Chinese naming convention
 - Use `SkillBullet` for auto-tracking projectiles, regular `Bullet` for direct shots
 - Always check `is_alive` and `is_active` before processing entities
 - Enemy AI behavior is controlled by difficulty configs - don't hardcode AI logic
