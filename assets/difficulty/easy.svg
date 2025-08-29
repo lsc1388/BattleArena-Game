@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <!-- 背景圓圈 -->
+  <circle cx="32" cy="32" r="30" fill="#4CAF50" stroke="#2E7D32" stroke-width="2"/>
+  
+  <!-- 笑臉 -->
+  <!-- 眼睛 -->
+  <circle cx="22" cy="24" r="3" fill="#2E7D32"/>
+  <circle cx="42" cy="24" r="3" fill="#2E7D32"/>
+  
+  <!-- 嘴巴 - 微笑弧線 -->
+  <path d="M 20 40 Q 32 50 44 40" stroke="#2E7D32" stroke-width="3" fill="none" stroke-linecap="round"/>
+  
+  <!-- 標題 -->
+  <text x="32" y="58" font-family="Arial, sans-serif" font-size="8" font-weight="bold" text-anchor="middle" fill="#2E7D32">簡單</text>
+</svg>

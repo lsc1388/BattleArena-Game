@@ -647,6 +647,63 @@ class ImageManager:
             print(f"處理場景預覽圖片時發生錯誤 ({scene_key}): {e}")
             return None
 
+    def load_image(self, image_path, size=None):
+        """
+        載入通用圖片\n
+        \n
+        參數:\n
+        image_path (str): 圖片路徑（相對於專案根目錄）\n
+        size (tuple): 圖片尺寸 (width, height)，None 表示保持原尺寸\n
+        \n
+        回傳:\n
+        pygame.Surface: 處理後的圖片，如果載入失敗則返回 None\n
+        """
+        # 建立快取鍵值
+        size_key = f"{size[0]}x{size[1]}" if size else "original"
+        cache_key = f"generic_{image_path}_{size_key}"
+
+        # 檢查快取
+        if cache_key in self.image_cache:
+            return self.image_cache[cache_key]
+
+        try:
+            # 嘗試載入圖片
+            full_path = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.dirname(__file__))), image_path
+            )
+
+            if not os.path.exists(full_path):
+                print(f"圖片檔案不存在: {full_path}")
+                return None
+
+            # 載入並處理圖片
+            raw_image = pygame.image.load(full_path)
+
+            # 檢查 pygame 顯示是否已初始化
+            try:
+                raw_image = raw_image.convert_alpha()
+            except pygame.error:
+                # 如果顯示未初始化，只使用 convert()
+                raw_image = raw_image.convert()
+
+            # 縮放圖片（如果指定了尺寸）
+            if size:
+                processed_image = pygame.transform.scale(raw_image, size)
+            else:
+                processed_image = raw_image
+
+            # 快取處理後的圖片
+            self.image_cache[cache_key] = processed_image
+            print(f"✅ 成功載入圖片: {image_path}")
+            return processed_image
+
+        except pygame.error as e:
+            print(f"載入圖片失敗 ({image_path}): {e}")
+            return None
+        except Exception as e:
+            print(f"處理圖片時發生錯誤 ({image_path}): {e}")
+            return None
+
     def clear_cache(self):
         """
         清除圖片快取\n

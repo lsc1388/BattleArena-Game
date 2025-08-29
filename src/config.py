@@ -372,19 +372,19 @@ GAME_STATES = {
 DIFFICULTY_CONFIGS = {
     "easy": {
         "name": "簡單",
-        "emoji": "😊",
+        "icon_path": "assets/difficulty/easy.png",
         "description": "適合新手玩家，敵人數量較少",
         "multiplier": 0.7,  # 敵人生命值倍率
     },
     "medium": {
         "name": "中等",
-        "emoji": "😐",
+        "icon_path": "assets/difficulty/medium.png",
         "description": "平衡的挑戰難度，適合一般玩家",
         "multiplier": 1.0,  # 敵人生命值倍率
     },
     "hard": {
         "name": "困難",
-        "emoji": "😤",
+        "icon_path": "assets/difficulty/hard.png",
         "description": "高挑戰性，適合經驗豐富的玩家",
         "multiplier": 1.3,  # 敵人生命值倍率
     },

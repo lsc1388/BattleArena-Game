@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <!-- 背景圓圈 -->
+  <circle cx="32" cy="32" r="30" fill="#F44336" stroke="#C62828" stroke-width="2"/>
+  
+  <!-- 憤怒臉 -->
+  <!-- 眼睛 - 皺眉形狀 -->
+  <path d="M 18 20 L 26 24 L 18 28" stroke="#C62828" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <path d="M 46 20 L 38 24 L 46 28" stroke="#C62828" stroke-width="2" fill="none" stroke-linecap="round"/>
+  
+  <!-- 嘴巴 - 皺眉弧線 -->
+  <path d="M 44 44 Q 32 34 20 44" stroke="#C62828" stroke-width="3" fill="none" stroke-linecap="round"/>
+  
+  <!-- 額頭皺紋 -->
+  <path d="M 24 14 Q 32 10 40 14" stroke="#C62828" stroke-width="2" fill="none" stroke-linecap="round"/>
+  
+  <!-- 標題 -->
+  <text x="32" y="58" font-family="Arial, sans-serif" font-size="8" font-weight="bold" text-anchor="middle" fill="#C62828">困難</text>
+</svg>

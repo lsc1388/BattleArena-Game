@@ -524,12 +524,41 @@ class SelectionUI:
         pygame.draw.rect(screen, card_color, card_rect)
         pygame.draw.rect(screen, border_color, card_rect, border_width)
 
-        # 難度emoji/圖示
-        emoji_surface = font_manager.render_text(
-            difficulty_config["emoji"], "large", COLORS["black"]
-        )
-        emoji_rect = emoji_surface.get_rect(center=(x + card_width // 2, y + 40))
-        screen.blit(emoji_surface, emoji_rect)
+        # 難度圖示（使用PNG圖片）
+        if "icon_path" in difficulty_config:
+            try:
+                # 載入難度圖示
+                icon_image = image_manager.load_image(difficulty_config["icon_path"])
+                if icon_image:
+                    # 縮放圖示到適當大小
+                    icon_size = 48
+                    icon_image = pygame.transform.scale(icon_image, (icon_size, icon_size))
+                    icon_rect = icon_image.get_rect(center=(x + card_width // 2, y + 40))
+                    screen.blit(icon_image, icon_rect)
+                else:
+                    # 圖片載入失敗，使用文字備用方案
+                    fallback_text = difficulty_config["name"][:1]  # 取名稱首字
+                    fallback_surface = font_manager.render_text(
+                        fallback_text, "large", border_color
+                    )
+                    fallback_rect = fallback_surface.get_rect(center=(x + card_width // 2, y + 40))
+                    screen.blit(fallback_surface, fallback_rect)
+            except Exception:
+                # 載入圖片出錯，使用文字備用方案
+                fallback_text = difficulty_config["name"][:1]  # 取名稱首字
+                fallback_surface = font_manager.render_text(
+                    fallback_text, "large", border_color
+                )
+                fallback_rect = fallback_surface.get_rect(center=(x + card_width // 2, y + 40))
+                screen.blit(fallback_surface, fallback_rect)
+        else:
+            # 沒有圖片路徑，使用文字備用方案
+            fallback_text = difficulty_config["name"][:1]  # 取名稱首字
+            fallback_surface = font_manager.render_text(
+                fallback_text, "large", border_color
+            )
+            fallback_rect = fallback_surface.get_rect(center=(x + card_width // 2, y + 40))
+            screen.blit(fallback_surface, fallback_rect)
 
         # 難度名稱
         name_surface = font_manager.render_text(
