@@ -147,8 +147,13 @@ class SelectionUI:
         # 角色選項 - 動態計算佈局，確保所有角色都在畫面內
         card_width = 180
         card_spacing = 20  # 卡片之間的間距
-        total_width = len(self.character_options) * card_width + (len(self.character_options) - 1) * card_spacing
-        options_start_x = max(10, (self.screen_width - total_width) // 2)  # 確保不會超出左邊界
+        total_width = (
+            len(self.character_options) * card_width
+            + (len(self.character_options) - 1) * card_spacing
+        )
+        options_start_x = max(
+            10, (self.screen_width - total_width) // 2
+        )  # 確保不會超出左邊界
         options_y = 150
 
         for i, character_key in enumerate(self.character_options):
@@ -195,8 +200,13 @@ class SelectionUI:
         # 場景選項 - 動態計算佈局，確保所有場景都在畫面內
         card_width = 180
         card_spacing = 20  # 卡片之間的間距
-        total_width = len(self.scene_options) * card_width + (len(self.scene_options) - 1) * card_spacing
-        options_start_x = max(10, (self.screen_width - total_width) // 2)  # 確保不會超出左邊界
+        total_width = (
+            len(self.scene_options) * card_width
+            + (len(self.scene_options) - 1) * card_spacing
+        )
+        options_start_x = max(
+            10, (self.screen_width - total_width) // 2
+        )  # 確保不會超出左邊界
         options_y = 150
 
         for i, scene_key in enumerate(self.scene_options):
@@ -240,10 +250,15 @@ class SelectionUI:
             screen.blit(char_surface, char_rect)
 
         # 難度選項 - 動態計算佈局，確保所有難度都在畫面內
-        card_width = 160
+        card_width = 200  # 增加卡片寬度以容納說明文字
         card_spacing = 20  # 卡片之間的間距
-        total_width = len(self.difficulty_options) * card_width + (len(self.difficulty_options) - 1) * card_spacing
-        options_start_x = max(10, (self.screen_width - total_width) // 2)  # 確保不會超出左邊界
+        total_width = (
+            len(self.difficulty_options) * card_width
+            + (len(self.difficulty_options) - 1) * card_spacing
+        )
+        options_start_x = max(
+            10, (self.screen_width - total_width) // 2
+        )  # 確保不會超出左邊界
         options_y = 150
 
         for i, difficulty_key in enumerate(self.difficulty_options):
@@ -255,7 +270,7 @@ class SelectionUI:
 
             # 繪製難度卡片
             self._draw_difficulty_card(
-                screen, difficulty_config, x, options_y, is_selected
+                screen, difficulty_config, x, options_y, is_selected, card_width
             )
 
         # 操作說明
@@ -470,7 +485,7 @@ class SelectionUI:
                 ]
                 pygame.draw.polygon(screen, (169, 169, 169), points)
 
-    def _draw_difficulty_card(self, screen, difficulty_config, x, y, is_selected):
+    def _draw_difficulty_card(self, screen, difficulty_config, x, y, is_selected, card_width=200):
         """
         繪製難度卡片
 
@@ -479,8 +494,8 @@ class SelectionUI:
         difficulty_config (dict): 難度配置
         x, y (int): 卡片位置
         is_selected (bool): 是否被選中
+        card_width (int): 卡片寬度，預設200像素
         """
-        card_width = 160
         card_height = 200
 
         # 卡片背景
