@@ -129,11 +129,21 @@ class EventHandler:
             if not self.game_engine.selected_character:
                 self.game_engine.selected_character = "cat"  # 預設角色
 
-            # 播放遊戲開始音效
-            get_sound_manager().play_sound("race_start")
+            # 播放遊戲開始音效（添加錯誤處理）
+            try:
+                get_sound_manager().play_sound("race_start")
+                print("✅ 播放遊戲開始音效")
+            except Exception as e:
+                print(f"⚠️ 播放開始音效失敗，但繼續遊戲: {e}")
 
             # 選擇完畢，進入倒數計時狀態
-            self.game_engine.state_manager.change_state("countdown")
+            print(f"🎯 場景選擇完成: {result['scene']}")
+            print(f"🎯 準備進入倒數計時狀態...")
+            success = self.game_engine.state_manager.change_state("countdown")
+            if success:
+                print("✅ 成功進入倒數計時狀態")
+            else:
+                print("❌ 進入倒數計時狀態失敗")
 
     def _handle_keydown(self, key):
         """

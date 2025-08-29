@@ -96,7 +96,7 @@ class SoundManager:
         # 如果音效尚未載入，先載入它
         if sound_name not in self.sounds:
             self._load_single_sound(sound_name)
-            
+
         if sound_name not in self.sounds:
             print(f"找不到或無法載入音效: {sound_name}")
             return
@@ -110,13 +110,13 @@ class SoundManager:
     def _load_single_sound(self, sound_name):
         """
         載入單一音效檔案（按需載入）
-        
+
         參數:
         sound_name (str): 要載入的音效名稱
         """
         if sound_name not in SOUND_CONFIGS:
             return
-            
+
         sound_config = SOUND_CONFIGS[sound_name]
         try:
             # 取得音效檔案的完整路徑
@@ -133,10 +133,56 @@ class SoundManager:
             # 設定音量（0.0 到 1.0 之間）
             sound.set_volume(sound_config["volume"])
 
+            # 檢查是否有速度倍率設定（用於機關槍加速音效）
+            if "speed_multiplier" in sound_config:
+                speed_multiplier = sound_config["speed_multiplier"]
+                # 使用 pygame.sndarray 處理音效速度調整
+                try:
+                    import numpy as np
+                    from pygame import sndarray
+
+                    # 轉換音效為 numpy 陣列
+                    sound_array = sndarray.array(sound)
+
+                    # 如果是立體聲，取平均值轉為單聲道
+                    if len(sound_array.shape) > 1:
+                        sound_array = np.mean(sound_array, axis=1)
+
+                    # 計算新的長度（速度快2倍，長度變一半）
+                    new_length = int(len(sound_array) / speed_multiplier)
+
+                    # 重新取樣音效
+                    step = len(sound_array) / new_length
+                    indices = np.arange(new_length) * step
+                    resampled = np.interp(
+                        indices, np.arange(len(sound_array)), sound_array
+                    )
+
+                    # 轉換回 pygame.mixer.Sound
+                    resampled = resampled.astype(np.int16)
+                    if len(sound_array.shape) == 1:
+                        # 單聲道轉立體聲
+                        stereo_array = np.column_stack((resampled, resampled))
+                    else:
+                        stereo_array = resampled
+
+                    sound = sndarray.make_sound(stereo_array)
+                    sound.set_volume(sound_config["volume"])
+
+                    print(f"按需載入加速音效: {sound_name} (速度: {speed_multiplier}x)")
+
+                except ImportError:
+                    print(
+                        f"⚠️ numpy 未安裝，無法調整音效速度，使用原始音效: {sound_name}"
+                    )
+                except Exception as e:
+                    print(f"⚠️ 調整音效速度失敗，使用原始音效: {sound_name}, 錯誤: {e}")
+
             # 儲存到字典中供後續使用
             self.sounds[sound_name] = sound
 
-            print(f"按需載入音效: {sound_name}")
+            if "speed_multiplier" not in sound_config:
+                print(f"按需載入音效: {sound_name}")
 
         except pygame.error as e:
             # pygame 載入音效失敗
@@ -155,16 +201,24 @@ class SoundManager:
         武器音效對應:\n
         - shotgun: 霰彈槍音效\n
         - rifle, pistol: 電漿槍音效\n
+        - submachinegun: 衝鋒槍音效（電漿槍音效）\n
+        - machinegun: 機關槍音效（電漿槍音效2倍速度）\n
         \n
         使用範例:\n
-        sound_manager.play_weapon_sound('shotgun')  # 播放霰彈槍音效\n
-        sound_manager.play_weapon_sound('rifle')    # 播放步槍音效\n
+        sound_manager.play_weapon_sound('shotgun')       # 播放霰彈槍音效\n
+        sound_manager.play_weapon_sound('rifle')         # 播放步槍音效\n
+        sound_manager.play_weapon_sound('submachinegun') # 播放衝鋒槍音效\n
+        sound_manager.play_weapon_sound('machinegun')    # 播放機關槍音效（2倍速）\n
         """
         # 根據武器類型決定要播放的音效
         if weapon_type == "shotgun":
             self.play_sound("shotgun")
         elif weapon_type in ["rifle", "pistol"]:
             self.play_sound("plasma_gun")
+        elif weapon_type == "submachinegun":
+            self.play_sound("submachinegun")
+        elif weapon_type == "machinegun":
+            self.play_sound("machinegun")
         else:
             print(f"未知的武器類型: {weapon_type}")
 
@@ -274,10 +328,11 @@ class SoundManager:
 # 全域音效管理器實例（延遲初始化）
 sound_manager = None
 
+
 def get_sound_manager():
     """
     獲取音效管理器實例（延遲初始化）
-    
+
     第一次呼叫時才會初始化SoundManager，避免程式啟動時的阻塞
     """
     global sound_manager

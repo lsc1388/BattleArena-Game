@@ -77,7 +77,7 @@ WEAPON_CONFIGS = {
         "name": "機關槍",
         "max_ammo": 999999,  # 無限彈藥
         "reload_time": 5000,
-        "fire_rate": 100,  # 快速射擊
+        "fire_rate": 67,  # 一秒15發（1000ms / 15 ≈ 67ms）
         "damage": 150,
         "bullet_speed": 15,
         "image_path": "assets/weapons/weapon_machinegun.png",  # 機關槍圖片路徑
@@ -372,18 +372,21 @@ GAME_STATES = {
 DIFFICULTY_CONFIGS = {
     "easy": {
         "name": "簡單",
+        "emoji": "🟢",
         "icon_path": "assets/difficulty/easy.png",
         "description": "適合新手玩家，敵人數量較少",
         "multiplier": 0.7,  # 敵人生命值倍率
     },
     "medium": {
         "name": "中等",
+        "emoji": "🟡",
         "icon_path": "assets/difficulty/medium.png",
         "description": "平衡的挑戰難度，適合一般玩家",
         "multiplier": 1.0,  # 敵人生命值倍率
     },
     "hard": {
         "name": "困難",
+        "emoji": "🔴",
         "icon_path": "assets/difficulty/hard.png",
         "description": "高挑戰性，適合經驗豐富的玩家",
         "multiplier": 1.3,  # 敵人生命值倍率
@@ -431,6 +434,17 @@ SOUND_CONFIGS = {
         "file_path": "assets/sounds/第三關BOSS背景音樂.mp3",
         "volume": 0.9,
         "description": "第3關BOSS戰專用背景音樂",
+    },
+    "submachinegun": {
+        "file_path": "assets/sounds/電漿槍射擊音效.mp3",
+        "volume": 0.6,
+        "description": "衝鋒槍射擊音效 - 使用電漿槍音效",
+    },
+    "machinegun": {
+        "file_path": "assets/sounds/電漿槍射擊音效.mp3",
+        "volume": 0.6,
+        "speed_multiplier": 2.0,  # 播放速度乘以2倍
+        "description": "機關槍射擊音效 - 使用電漿槍音效加速版",
     },
 }
 
