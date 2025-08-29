@@ -11,7 +11,7 @@ from src.systems.collision import CollisionSystem
 from src.ui.game_ui import GameUI
 from src.ui.selection_ui import SelectionUI
 from src.utils.font_manager import font_manager
-from src.utils.sound_manager import sound_manager
+from src.utils.sound_manager import get_sound_manager
 from src.core.state_manager import StateManager
 from src.core.event_handler import EventHandler
 from src.core.input_manager import InputManager
@@ -159,7 +159,7 @@ class GameEngine:
 
         # 檢查是否是第3關並播放專用音樂
         if self.current_level == 3:
-            sound_manager.play_level3_boss_music()
+            get_sound_manager().play_level3_boss_music()
             print("播放第3關BOSS音樂")
 
         # 顯示遊戲開始訊息
@@ -586,7 +586,7 @@ class GameEngine:
                     and self.player.victory_star_collected
                 ):
                     # 播放勝利音效
-                    sound_manager.play_victory_sound()
+                    get_sound_manager().play_victory_sound()
                     self.game_ui.add_message(
                         level_config["completion_message"],
                         "achievement",
@@ -602,7 +602,7 @@ class GameEngine:
         required = level_config.get("enemy_count", 0)
         if self.level_enemies_killed >= required:
             # 播放勝利音效
-            sound_manager.play_victory_sound()
+            get_sound_manager().play_victory_sound()
             self.game_ui.add_message(
                 level_config.get("completion_message", "關卡完成！"),
                 "achievement",
@@ -626,7 +626,7 @@ class GameEngine:
 
                 # 檢查是否進入第3關並播放專用音樂
                 if self.current_level == 3:
-                    sound_manager.play_level3_boss_music()
+                    get_sound_manager().play_level3_boss_music()
                     print("進入第3關！播放BOSS音樂")
 
                 self.game_ui.add_message(

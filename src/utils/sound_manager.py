@@ -28,18 +28,16 @@ class SoundManager:
         初始化步驟：\n
         1. 啟動 pygame mixer 音效系統\n
         2. 設定音效緩衝區大小和品質\n
-        3. 載入所有配置的音效檔案\n
-        4. 準備音效字典供快速存取\n
+        3. 準備空的音效字典（音效將按需載入）\n
         """
         # 初始化 pygame 音效系統，設定合適的參數
         pygame.mixer.pre_init(frequency=22050, size=-16, channels=2, buffer=512)
         pygame.mixer.init()
 
-        # 儲存載入的音效檔案
+        # 儲存載入的音效檔案（初始為空，按需載入）
         self.sounds = {}
 
-        # 載入所有音效檔案
-        self._load_sounds()
+        print("🎵 音效系統已就緒（音效將按需載入）")
 
     def _load_sounds(self):
         """
@@ -95,8 +93,12 @@ class SoundManager:
         - 如果音效不存在，印出警告訊息但不會中斷遊戲\n
         - 如果播放失敗，捕獲例外並印出錯誤訊息\n
         """
+        # 如果音效尚未載入，先載入它
         if sound_name not in self.sounds:
-            print(f"找不到音效: {sound_name}")
+            self._load_single_sound(sound_name)
+            
+        if sound_name not in self.sounds:
+            print(f"找不到或無法載入音效: {sound_name}")
             return
 
         try:
@@ -104,6 +106,44 @@ class SoundManager:
             self.sounds[sound_name].play()
         except pygame.error as e:
             print(f"播放音效 {sound_name} 失敗: {e}")
+
+    def _load_single_sound(self, sound_name):
+        """
+        載入單一音效檔案（按需載入）
+        
+        參數:
+        sound_name (str): 要載入的音效名稱
+        """
+        if sound_name not in SOUND_CONFIGS:
+            return
+            
+        sound_config = SOUND_CONFIGS[sound_name]
+        try:
+            # 取得音效檔案的完整路徑
+            sound_path = sound_config["file_path"]
+
+            # 檢查檔案是否存在
+            if not os.path.exists(sound_path):
+                print(f"音效檔案不存在: {sound_path}")
+                return
+
+            # 載入音效檔案
+            sound = pygame.mixer.Sound(sound_path)
+
+            # 設定音量（0.0 到 1.0 之間）
+            sound.set_volume(sound_config["volume"])
+
+            # 儲存到字典中供後續使用
+            self.sounds[sound_name] = sound
+
+            print(f"按需載入音效: {sound_name}")
+
+        except pygame.error as e:
+            # pygame 載入音效失敗
+            print(f"載入音效 {sound_name} 失敗: {e}")
+        except Exception as e:
+            # 其他未預期的錯誤
+            print(f"載入音效 {sound_name} 時發生錯誤: {e}")
 
     def play_weapon_sound(self, weapon_type):
         """
@@ -231,5 +271,18 @@ class SoundManager:
             sound.set_volume(original_volume * volume)
 
 
-# 創建全域音效管理器實例
-sound_manager = SoundManager()
+# 全域音效管理器實例（延遲初始化）
+sound_manager = None
+
+def get_sound_manager():
+    """
+    獲取音效管理器實例（延遲初始化）
+    
+    第一次呼叫時才會初始化SoundManager，避免程式啟動時的阻塞
+    """
+    global sound_manager
+    if sound_manager is None:
+        print("🎵 初始化音效系統...")
+        sound_manager = SoundManager()
+        print("✅ 音效系統初始化完成")
+    return sound_manager

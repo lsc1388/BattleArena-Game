@@ -1,7 +1,7 @@
 ######################載入套件######################
 import pygame
 from src.config import *
-from src.utils.sound_manager import sound_manager
+from src.utils.sound_manager import get_sound_manager
 
 ######################事件處理系統######################
 
@@ -130,7 +130,7 @@ class EventHandler:
                 self.game_engine.selected_character = "cat"  # 預設角色
 
             # 播放遊戲開始音效
-            sound_manager.play_sound("race_start")
+            get_sound_manager().play_sound("race_start")
 
             # 選擇完畢，進入倒數計時狀態
             self.game_engine.state_manager.change_state("countdown")

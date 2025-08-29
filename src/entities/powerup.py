@@ -3,7 +3,7 @@ import pygame
 import random
 import math
 from src.config import *
-from src.utils.sound_manager import sound_manager
+from src.utils.sound_manager import get_sound_manager
 
 ######################物件類別######################
 
@@ -546,7 +546,7 @@ class PowerUpManager:
                     }
                 )
                 # 播放道具拾取音效
-                sound_manager.play_powerup_pickup_sound()
+                get_sound_manager().play_powerup_pickup_sound()
 
         # 移除被拾取的道具
         self.powerups = [p for p in self.powerups if p.is_active]

@@ -3,7 +3,7 @@ import pygame
 import math
 from src.config import *
 from src.utils.image_manager import image_manager
-from src.utils.sound_manager import sound_manager
+from src.utils.sound_manager import get_sound_manager
 
 ######################物件類別######################
 
@@ -352,7 +352,7 @@ class Player:
         self.last_shot_time = pygame.time.get_ticks()
 
         # 播放武器射擊音效
-        sound_manager.play_weapon_sound(self.current_weapon)
+        get_sound_manager().play_weapon_sound(self.current_weapon)
 
         # 計算射擊角度
         if target_pos:
@@ -475,7 +475,7 @@ class Player:
         self.last_skill_time = current_time
 
         # 播放技能音效
-        sound_manager.play_skill_sound()
+        get_sound_manager().play_skill_sound()
 
         # 設定技能啟用狀態
         self.active_skill = {
@@ -732,7 +732,7 @@ class Player:
         if self.health <= 0:
             self.health = 0
             if self.is_alive:  # 只在第一次死亡時播放音效
-                sound_manager.play_death_sound()
+                get_sound_manager().play_death_sound()
             self.is_alive = False
 
         return self.is_alive
@@ -783,7 +783,7 @@ class Player:
         actual_heal = self.health - old_health
 
         # 播放補血音效
-        sound_manager.play_powerup_pickup_sound()
+        get_sound_manager().play_powerup_pickup_sound()
 
         return {
             "success": True,
