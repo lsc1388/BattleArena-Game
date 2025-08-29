@@ -408,7 +408,21 @@ SOUND_CONFIGS = {
     "plasma_gun": {
         "file_path": "assets/sounds/電漿槍射擊音效.mp3",
         "volume": 0.6,
-        "description": "步槍和手槍射擊音效",
+        "description": "電漿槍射擊音效 - 用於步槍、手槍、機關槍、衝鋒槍",
+    },
+    "pistol": {
+        "file_path": "assets/sounds/電漿槍射擊音效.mp3",
+        "volume": 0.6,
+        "start_time": 0.0,  # 開始時間（秒）
+        "end_time": 2.0,  # 結束時間（秒）
+        "description": "手槍射擊音效 - 使用電漿槍音效 0-2 秒片段",
+    },
+    "rifle": {
+        "file_path": "assets/sounds/電漿槍射擊音效.mp3",
+        "volume": 0.6,
+        "start_time": 0.0,  # 開始時間（秒）
+        "end_time": 2.0,  # 結束時間（秒）
+        "description": "步槍射擊音效 - 使用電漿槍音效 0-2 秒片段",
     },
     "victory": {
         "file_path": "assets/sounds/勝利音效.wav",
@@ -438,13 +452,17 @@ SOUND_CONFIGS = {
     "submachinegun": {
         "file_path": "assets/sounds/電漿槍射擊音效.mp3",
         "volume": 0.6,
-        "description": "衝鋒槍射擊音效 - 使用電漿槍音效",
+        "start_time": 0.0,  # 開始時間（秒）
+        "end_time": 2.0,  # 結束時間（秒）
+        "description": "衝鋒槍射擊音效 - 使用電漿槍音效 0-2 秒片段",
     },
     "machinegun": {
         "file_path": "assets/sounds/電漿槍射擊音效.mp3",
         "volume": 0.6,
         "speed_multiplier": 2.0,  # 播放速度乘以2倍
-        "description": "機關槍射擊音效 - 使用電漿槍音效加速版",
+        "start_time": 0.0,  # 開始時間（秒）
+        "end_time": 2.0,  # 結束時間（秒）
+        "description": "機關槍射擊音效 - 使用電漿槍音效 0-2 秒片段加速版",
     },
 }
 
@@ -470,7 +488,8 @@ LEVEL_CONFIGS = {
         3: {
             "name": "第三關 - 混合來襲與 BOSS",
             "enemy_counts": {"zombie": 7, "alien": 5},
-            "enemy_count": 12,  # 合計數
+            "enemy_count": 12,  # 普通敵人合計數
+            "total_enemy_count": 13,  # 包含BOSS的總數
             "scene": "lava",  # 岩漿背景
             "boss": True,
             "description": "擊敗 7 個殭屍與 5 個外星人，然後擊敗 BOSS",
@@ -497,7 +516,8 @@ LEVEL_CONFIGS = {
         3: {
             "name": "第三關 - 混合來襲與 BOSS",
             "enemy_counts": {"zombie": 10, "alien": 7},
-            "enemy_count": 17,  # 合計數
+            "enemy_count": 17,  # 普通敵人合計數
+            "total_enemy_count": 18,  # 包含BOSS的總數
             "scene": "lava",  # 岩漿背景
             "boss": True,
             "description": "擊敗 10 個殭屍與 7 個外星人，然後擊敗 BOSS",
@@ -524,7 +544,8 @@ LEVEL_CONFIGS = {
         3: {
             "name": "第三關 - 混合來襲與 BOSS",
             "enemy_counts": {"zombie": 15, "alien": 10},
-            "enemy_count": 25,  # 合計數
+            "enemy_count": 25,  # 普通敵人合計數
+            "total_enemy_count": 26,  # 包含BOSS的總數
             "scene": "lava",  # 岩漿背景
             "boss": True,
             "description": "擊敗 15 個殭屍與 10 個外星人，然後擊敗 BOSS",

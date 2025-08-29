@@ -130,6 +130,51 @@ class SoundManager:
             # 載入音效檔案
             sound = pygame.mixer.Sound(sound_path)
 
+            # 檢查是否需要截取特定時間段
+            if "start_time" in sound_config and "end_time" in sound_config:
+                start_time = sound_config["start_time"]
+                end_time = sound_config["end_time"]
+
+                try:
+                    # 使用 pygame.sndarray 處理音效截取
+                    import numpy as np
+                    from pygame import sndarray
+
+                    # 轉換音效為 numpy 陣列
+                    sound_array = sndarray.array(sound)
+
+                    # 獲取音效的採樣率（假設為 22050Hz，pygame 的預設值）
+                    sample_rate = 22050
+
+                    # 計算開始和結束的樣本索引
+                    start_sample = int(start_time * sample_rate)
+                    end_sample = int(end_time * sample_rate)
+
+                    # 確保索引在有效範圍內
+                    start_sample = max(0, start_sample)
+                    end_sample = min(len(sound_array), end_sample)
+
+                    # 截取指定時間段的音效
+                    if len(sound_array.shape) > 1:
+                        # 立體聲
+                        trimmed_array = sound_array[start_sample:end_sample]
+                    else:
+                        # 單聲道，轉換為立體聲
+                        mono_trimmed = sound_array[start_sample:end_sample]
+                        trimmed_array = np.column_stack((mono_trimmed, mono_trimmed))
+
+                    # 轉換回 pygame.mixer.Sound
+                    sound = sndarray.make_sound(trimmed_array.astype(np.int16))
+
+                    print(f"按需載入音效片段: {sound_name} ({start_time}-{end_time}秒)")
+
+                except ImportError:
+                    print(
+                        f"⚠️ numpy 未安裝，無法截取音效片段，使用完整音效: {sound_name}"
+                    )
+                except Exception as e:
+                    print(f"⚠️ 截取音效片段失敗，使用完整音效: {sound_name}, 錯誤: {e}")
+
             # 設定音量（0.0 到 1.0 之間）
             sound.set_volume(sound_config["volume"])
 
@@ -181,7 +226,10 @@ class SoundManager:
             # 儲存到字典中供後續使用
             self.sounds[sound_name] = sound
 
-            if "speed_multiplier" not in sound_config:
+            if (
+                "speed_multiplier" not in sound_config
+                and "start_time" not in sound_config
+            ):
                 print(f"按需載入音效: {sound_name}")
 
         except pygame.error as e:
@@ -200,12 +248,14 @@ class SoundManager:
         \n
         武器音效對應:\n
         - shotgun: 霰彈槍音效\n
-        - rifle, pistol: 電漿槍音效\n
+        - pistol: 手槍音效（電漿槍音效）\n
+        - rifle: 步槍音效（電漿槍音效）\n
         - submachinegun: 衝鋒槍音效（電漿槍音效）\n
         - machinegun: 機關槍音效（電漿槍音效2倍速度）\n
         \n
         使用範例:\n
         sound_manager.play_weapon_sound('shotgun')       # 播放霰彈槍音效\n
+        sound_manager.play_weapon_sound('pistol')        # 播放手槍音效\n
         sound_manager.play_weapon_sound('rifle')         # 播放步槍音效\n
         sound_manager.play_weapon_sound('submachinegun') # 播放衝鋒槍音效\n
         sound_manager.play_weapon_sound('machinegun')    # 播放機關槍音效（2倍速）\n
@@ -213,8 +263,10 @@ class SoundManager:
         # 根據武器類型決定要播放的音效
         if weapon_type == "shotgun":
             self.play_sound("shotgun")
-        elif weapon_type in ["rifle", "pistol"]:
-            self.play_sound("plasma_gun")
+        elif weapon_type == "pistol":
+            self.play_sound("pistol")
+        elif weapon_type == "rifle":
+            self.play_sound("rifle")
         elif weapon_type == "submachinegun":
             self.play_sound("submachinegun")
         elif weapon_type == "machinegun":
