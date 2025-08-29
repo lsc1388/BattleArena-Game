@@ -532,8 +532,12 @@ class SelectionUI:
                 if icon_image:
                     # 縮放圖示到適當大小
                     icon_size = 48
-                    icon_image = pygame.transform.scale(icon_image, (icon_size, icon_size))
-                    icon_rect = icon_image.get_rect(center=(x + card_width // 2, y + 40))
+                    icon_image = pygame.transform.scale(
+                        icon_image, (icon_size, icon_size)
+                    )
+                    icon_rect = icon_image.get_rect(
+                        center=(x + card_width // 2, y + 40)
+                    )
                     screen.blit(icon_image, icon_rect)
                 else:
                     # 圖片載入失敗，使用文字備用方案
@@ -541,7 +545,9 @@ class SelectionUI:
                     fallback_surface = font_manager.render_text(
                         fallback_text, "large", border_color
                     )
-                    fallback_rect = fallback_surface.get_rect(center=(x + card_width // 2, y + 40))
+                    fallback_rect = fallback_surface.get_rect(
+                        center=(x + card_width // 2, y + 40)
+                    )
                     screen.blit(fallback_surface, fallback_rect)
             except Exception:
                 # 載入圖片出錯，使用文字備用方案
@@ -549,7 +555,9 @@ class SelectionUI:
                 fallback_surface = font_manager.render_text(
                     fallback_text, "large", border_color
                 )
-                fallback_rect = fallback_surface.get_rect(center=(x + card_width // 2, y + 40))
+                fallback_rect = fallback_surface.get_rect(
+                    center=(x + card_width // 2, y + 40)
+                )
                 screen.blit(fallback_surface, fallback_rect)
         else:
             # 沒有圖片路徑，使用文字備用方案
@@ -557,7 +565,9 @@ class SelectionUI:
             fallback_surface = font_manager.render_text(
                 fallback_text, "large", border_color
             )
-            fallback_rect = fallback_surface.get_rect(center=(x + card_width // 2, y + 40))
+            fallback_rect = fallback_surface.get_rect(
+                center=(x + card_width // 2, y + 40)
+            )
             screen.blit(fallback_surface, fallback_rect)
 
         # 難度名稱
