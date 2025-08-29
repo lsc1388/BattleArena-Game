@@ -44,6 +44,7 @@ class ImageManager:
         self._initialized = True
         self.image_cache = {}  # 圖片快取
         self.character_images = {}  # 角色圖片快取
+        self.weapon_images = {}  # 武器圖片快取
 
         # 不在初始化時預載入圖片，改為延遲載入
 
@@ -306,6 +307,196 @@ class ImageManager:
 
         return surface
 
+    def load_weapon_image(self, weapon_type, size=(40, 40)):
+        """
+        載入武器圖片\n
+        \n
+        參數:\n
+        weapon_type (str): 武器類型 ("pistol", "rifle", "shotgun", "machinegun", "submachinegun")\n
+        size (tuple): 圖片尺寸 (width, height)\n
+        \n
+        回傳:\n
+        pygame.Surface: 處理後的武器圖片，如果載入失敗則返回預設圖示\n
+        """
+        # 建立快取鍵值
+        cache_key = f"weapon_{weapon_type}_{size[0]}x{size[1]}"
+
+        # 檢查快取
+        if cache_key in self.image_cache:
+            return self.image_cache[cache_key]
+
+        weapon_config = WEAPON_CONFIGS.get(weapon_type)
+        if not weapon_config or "image_path" not in weapon_config:
+            # 沒有圖片配置，使用預設圖示
+            return self._create_weapon_fallback_image(weapon_type, size)
+
+        image_path = weapon_config["image_path"]
+
+        try:
+            # 嘗試載入圖片 - 修正路徑計算
+            # __file__ 位於 src/utils/image_manager.py
+            # 需要回到專案根目錄：src/utils -> src -> 專案根目錄
+            project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+            full_path = os.path.join(project_root, image_path)
+
+            if not os.path.exists(full_path):
+                print(f"武器圖片檔案不存在: {full_path}")
+                return self._create_weapon_fallback_image(weapon_type, size)
+
+            # 載入並處理圖片
+            raw_image = pygame.image.load(full_path)
+
+            # 檢查 pygame 顯示是否已初始化
+            try:
+                raw_image = raw_image.convert_alpha()
+            except pygame.error:
+                # 如果顯示未初始化，只使用 convert()
+                raw_image = raw_image.convert()
+
+            # 縮放圖片
+            scaled_image = pygame.transform.scale(raw_image, size)
+
+            # 快取處理後的圖片
+            self.image_cache[cache_key] = scaled_image
+            print(f"✅ 成功載入武器圖片: {weapon_type} - {image_path}")
+            return scaled_image
+
+        except pygame.error as e:
+            print(f"載入武器圖片失敗 ({weapon_type}): {e}")
+            return self._create_weapon_fallback_image(weapon_type, size)
+        except Exception as e:
+            print(f"處理武器圖片時發生錯誤 ({weapon_type}): {e}")
+            return self._create_weapon_fallback_image(weapon_type, size)
+
+    def _create_weapon_fallback_image(self, weapon_type, size):
+        """
+        創建武器預設圖示（當圖片載入失敗時使用）\n
+        \n
+        參數:\n
+        weapon_type (str): 武器類型\n
+        size (tuple): 圖片尺寸\n
+        \n
+        回傳:\n
+        pygame.Surface: 武器預設圖示\n
+        """
+        surface = pygame.Surface(size, pygame.SRCALPHA)
+        center_x, center_y = size[0] // 2, size[1] // 2
+
+        # 根據武器類型選擇顏色和形狀
+        weapon_colors = {
+            "pistol": COLORS["gray"],  # 手槍 - 灰色
+            "rifle": COLORS["dark_gray"],  # 步槍 - 深灰色
+            "shotgun": (139, 69, 19),  # 霰彈槍 - 棕色
+            "machinegun": (64, 64, 64),  # 機關槍 - 暗灰色
+            "submachinegun": (105, 105, 105),  # 衝鋒槍 - 中灰色
+        }
+
+        weapon_name = WEAPON_CONFIGS.get(weapon_type, {}).get("name", weapon_type)
+        color = weapon_colors.get(weapon_type, COLORS["gray"])
+
+        print(f"🔶 使用預設武器圖示: {weapon_name}")
+
+        # 根據武器類型繪製不同形狀
+        if weapon_type == "pistol":
+            # 手槍 - 小矩形
+            rect_size = min(size) // 2
+            rect_x = (size[0] - rect_size) // 2
+            rect_y = (size[1] - rect_size) // 2
+            pygame.draw.rect(surface, color, (rect_x, rect_y, rect_size, rect_size))
+            pygame.draw.rect(
+                surface, COLORS["white"], (rect_x, rect_y, rect_size, rect_size), 1
+            )
+
+        elif weapon_type == "rifle":
+            # 步槍 - 長矩形
+            rect_width = size[0] - 4
+            rect_height = size[1] // 3
+            rect_x = 2
+            rect_y = (size[1] - rect_height) // 2
+            pygame.draw.rect(surface, color, (rect_x, rect_y, rect_width, rect_height))
+            pygame.draw.rect(
+                surface, COLORS["white"], (rect_x, rect_y, rect_width, rect_height), 1
+            )
+
+        elif weapon_type == "shotgun":
+            # 霰彈槍 - 粗短矩形
+            rect_width = size[0] - 6
+            rect_height = size[1] // 2
+            rect_x = 3
+            rect_y = (size[1] - rect_height) // 2
+            pygame.draw.rect(surface, color, (rect_x, rect_y, rect_width, rect_height))
+            pygame.draw.rect(
+                surface, COLORS["white"], (rect_x, rect_y, rect_width, rect_height), 2
+            )
+            # 添加槍管裝飾
+            barrel_y = rect_y + rect_height // 4
+            pygame.draw.line(
+                surface,
+                COLORS["white"],
+                (rect_x + 2, barrel_y),
+                (rect_x + rect_width - 2, barrel_y),
+                1,
+            )
+
+        elif weapon_type == "machinegun":
+            # 機關槍 - 複雜形狀
+            # 主體
+            main_width = size[0] - 4
+            main_height = size[1] // 2
+            main_x = 2
+            main_y = (size[1] - main_height) // 2
+            pygame.draw.rect(surface, color, (main_x, main_y, main_width, main_height))
+            # 槍管
+            barrel_width = main_width // 3
+            barrel_height = main_height // 2
+            barrel_x = main_x + main_width - barrel_width
+            barrel_y = main_y - barrel_height // 2
+            pygame.draw.rect(
+                surface, color, (barrel_x, barrel_y, barrel_width, barrel_height)
+            )
+            pygame.draw.rect(
+                surface, COLORS["white"], (main_x, main_y, main_width, main_height), 1
+            )
+
+        elif weapon_type == "submachinegun":
+            # 衝鋒槍 - 中等大小
+            rect_width = size[0] - 8
+            rect_height = size[1] // 3
+            rect_x = 4
+            rect_y = (size[1] - rect_height) // 2
+            pygame.draw.rect(surface, color, (rect_x, rect_y, rect_width, rect_height))
+            # 添加握把
+            grip_width = rect_width // 4
+            grip_height = rect_height + 4
+            grip_x = rect_x + rect_width // 4
+            grip_y = rect_y - 2
+            pygame.draw.rect(surface, color, (grip_x, grip_y, grip_width, grip_height))
+            pygame.draw.rect(
+                surface, COLORS["white"], (rect_x, rect_y, rect_width, rect_height), 1
+            )
+
+        else:
+            # 預設 - 圓形
+            pygame.draw.circle(surface, color, (center_x, center_y), min(size) // 2 - 2)
+            pygame.draw.circle(
+                surface, COLORS["white"], (center_x, center_y), min(size) // 2 - 2, 1
+            )
+
+        return surface
+
+    def get_weapon_image(self, weapon_type, size=(40, 40)):
+        """
+        取得武器圖片（公開介面）\n
+        \n
+        參數:\n
+        weapon_type (str): 武器類型\n
+        size (tuple): 圖片尺寸\n
+        \n
+        回傳:\n
+        pygame.Surface: 武器圖片\n
+        """
+        return self.load_weapon_image(weapon_type, size)
+
     def get_character_image_for_selection(self, character_type):
         """
         取得角色選擇界面用的圖片\n
@@ -342,6 +533,7 @@ class ImageManager:
         """
         self.image_cache.clear()
         self.character_images.clear()
+        self.weapon_images.clear()
 
 
 # 創建全域圖片管理器實例

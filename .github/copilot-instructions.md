@@ -1,24 +1,28 @@
+````instructions
 # BattleArena Game — AI Coding Agent Guide
 
 Essential knowledge for AI coding agents to be immediately productive in this codebase. Focuses on architecture patterns, critical integration points, and project-specific conventions.
 
 ## 🏗️ Architecture Overview
 
-**Project**: Pygame 2D shooting game with character selection, multiple weapons, and AI opponents.
+**Project**: Pygame 2D shooting game with character selection (貓/狗/狼), skill system, level progression, and Chinese UI.
 
 **Entry Point**: `main.py` → `GameEngine` class manages game loop and state machine:
 
 - State flow: menu → character_select → difficulty_select → scene_select → countdown → playing → game_over
 - Core pattern: Event handling → Update logic → Render → Repeat at 60 FPS
+- **Critical**: Direct execution (`main()` called immediately, no `if __name__ == "__main__":`)
 
 **Module Structure**:
 
 - `src/entities/`: Game objects (Player, Enemy, Bullet, PowerUp) - each implements `update()`, `get_rect()`, `draw()`, `is_alive`
 - `src/systems/`: Service boundaries (CollisionSystem centralizes all collision detection)
 - `src/ui/`: Interface layers (GameUI, SelectionUI) with Chinese font support via font_manager
-- `src/utils/`: Shared utilities (FontManager singleton for Chinese text rendering, ImageManager for assets)
+- `src/utils/`: Shared utilities (FontManager singleton for Chinese text rendering, ImageManager for assets, SoundManager)
 - `src/core/`: Core systems (StateManager, EventHandler, InputManager) for game architecture
 - `src/config.py`: **All configuration data** - never hardcode game values
+- `assets/`: Character images (`characters/cat-removebg-preview.png`, etc.) and weapon sprites
+- `音效/`: Chinese-named sound directory with game audio files
 
 ## 🔒 Critical Integration Points (DO NOT MODIFY ARBITRARILY)
 
@@ -103,17 +107,26 @@ for entity in entities[:]:  # Create copy for safe iteration
 
 ## 🎯 Critical Project-Specific Patterns
 
+**Character System**: Three distinct characters with unique attributes and skills:
+- 貓 (Cat): High attack (130%), low fire rate (70%), laser skill (yellow beam, 100 damage)
+- 狗 (Dog): Balanced stats (100%), flame skill (fire particles, 75 damage)  
+- 狼 (Wolf): High fire rate (150%), low attack (80%), ice skill (crystal effects, 125 damage)
+
+**Level Progression System**: Sequential enemy waves with automatic progression:
+- Level 1: 3 zombies (25 damage, 2s attack frequency)
+- Level 2: 5 aliens (35 damage, 3s attack frequency)
+- Track `level_enemies_killed` vs `LEVEL_CONFIGS[difficulty][level]["enemy_count"]`
+
+**Skill System**: 3-second duration skills with unique visual effects:
+- All skills cost 10% max health, 10-second cooldown
+- Use `Player.use_skill()` and check `Player.is_skill_active()`
+- Each character has distinct particle/beam effects
+
 **State Machine Flow**: Menu → character_select → difficulty_select → scene_select → countdown → playing → game_over (see `GameEngine`)
 
-**Skill System**: 3-second duration skills with visual effects and health cost - use `Player.use_skill()` and check `Player.is_skill_active()`
+**Difficulty System**: Three-tier difficulty (easy/medium/hard) affects enemy counts, health multipliers, and AI behavior
 
-**Level Progression**: Automatic enemy type switching between levels, track `level_enemies_killed` vs `LEVEL_CONFIGS[difficulty][level]["enemy_count"]`
-
-**Difficulty System**: Three-tier difficulty (easy/medium/hard) affects enemy counts, health multipliers, and level progression
-
-**Chinese Font Handling**: FontManager automatically detects system fonts, use `font_manager.render_text()` consistently
-
-**AI Difficulty Scaling**: All AI properties in `AI_CONFIGS` affect enemy accuracy, health, and behavior patterns
+**Chinese Localization**: All UI text in Traditional Chinese, FontManager handles system font detection
 
 ## 🎮 Quick Reference Examples
 
@@ -131,26 +144,37 @@ for entity in entities[:]:  # Create copy for safe iteration
 
 **Run Game**: `python main.py` (direct execution, no `if __name__ == "__main__":` needed)
 
-**Run Tests**: Individual test files like `test_all_sounds.py` (no pytest framework currently)
+**Test Files**: Individual test files like `test_complete_shotgun.py`, `test_bullet_image.py` (manual testing, no pytest framework)
 
-**Debug Keys**: F1 (spawn boss), F2 (complete level) for testing
+**Debug Keys**: F1 (spawn boss), F2 (complete level), H (toggle health display), C (toggle crosshair)
 
-**Game Assets**: Character images in `assets/characters/` with both PNG and JPG fallbacks, sound files in `音效/` directory
+**Game Controls**: WASD (movement), Mouse (aim/shoot), Q (skill), R (reload), 1-5 (weapons), ESC (menu)
+
+**Game Assets**: Character images in `assets/characters/` with `-removebg-preview.png` format, sounds in `音效/` with Chinese filenames
 
 ## 📋 Code Style Requirements
 
+**Language**: Traditional Chinese comments and docstrings for all public methods
+
 **Naming**: snake_case (variables/functions), PascalCase (classes), SCREAMING_SNAKE_CASE (constants)
 
-**Comments**: Use Chinese docstrings for public methods, `######################` for section separators
+**Comments**: Use `######################` for major section separators
 
 **Imports**: Group by standard/third-party/local, use absolute imports from `src/`
+
+**File Structure**: Follow existing pattern - entities for game objects, systems for services, ui for interfaces
 
 ## ⚠️ Common Pitfalls to Avoid
 
 - Never hardcode values - use `src/config.py` configurations
-- Always use `font_manager` for text rendering (handles Chinese fonts)
+- Always use `font_manager` for text rendering (handles Chinese fonts automatically)
 - Always use `sound_manager` for audio - never use pygame.mixer directly
 - Don't implement custom collision detection - use `CollisionSystem`
 - Use manager classes for bullets/powerups, not direct entity lists
 - Remember safe iteration patterns when removing entities
 - Character attributes are multipliers applied to base values, not absolute values
+- Test files are for manual verification, not automated testing
+- Asset paths must match actual file names (case-sensitive)
+- Sound files in `音效/` directory use Chinese naming convention
+
+````

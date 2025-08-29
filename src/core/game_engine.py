@@ -151,6 +151,11 @@ class GameEngine:
         self.bullet_manager.clear_all_bullets()
         self.powerup_manager.clear_all_powerups()
 
+        # 檢查是否是第3關並播放專用音樂
+        if self.current_level == 3:
+            sound_manager.play_level3_boss_music()
+            print("播放第3關BOSS音樂")
+
         # 顯示遊戲開始訊息
         level_config = LEVEL_CONFIGS[self.selected_difficulty][self.current_level]
         self.game_ui.add_message(
@@ -428,6 +433,11 @@ class GameEngine:
                 if "scene" in next_level_config:
                     self.selected_scene = next_level_config["scene"]
                 self.enemies.clear()
+
+                # 檢查是否進入第3關並播放專用音樂
+                if self.current_level == 3:
+                    sound_manager.play_level3_boss_music()
+                    print("進入第3關！播放BOSS音樂")
 
                 self.game_ui.add_message(
                     f"{next_level_config['name']}", "achievement", COLORS["blue"]

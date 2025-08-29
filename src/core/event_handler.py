@@ -86,6 +86,7 @@ class EventHandler:
                             bullet_info["speed"],
                             bullet_info["damage"],
                             "player",
+                            self.game_engine.player.current_weapon,
                         )
                     self.game_engine.game_stats["shots_fired"] += len(
                         shot_data["bullets"]
@@ -347,6 +348,7 @@ class EventHandler:
                         bullet_info["speed"],
                         bullet_info["damage"],
                         "player",
+                        self.game_engine.player.current_weapon,
                     )
 
                 self.game_engine.game_stats["shots_fired"] += len(shot_data["bullets"])

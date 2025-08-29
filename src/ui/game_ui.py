@@ -3,6 +3,7 @@ import pygame
 import math
 from src.config import *
 from src.utils.font_manager import font_manager
+from src.utils.image_manager import image_manager
 
 ######################UI系統######################
 
@@ -285,7 +286,7 @@ class GameUI:
 
     def _draw_weapon_info(self, screen, player):
         """
-        繪製武器資訊\n
+        繪製武器資訊（包含武器圖片）\n
         \n
         參數:\n
         screen (pygame.Surface): 遊戲畫面物件\n
@@ -294,13 +295,32 @@ class GameUI:
         x, y = self.weapon_info_pos
         weapon_info = player.get_weapon_info()
 
-        # 武器名稱
-        weapon_text = f"武器: {weapon_info['name']}"
-        text_surface = self.font_medium.render(weapon_text, True, COLORS["white"])
-        screen.blit(text_surface, (x, y))
+        # 繪製武器圖片（如果有的話）
+        weapon_image_size = 96  # 武器圖片大小（3倍原本的32）
+        try:
+            weapon_image = image_manager.get_weapon_image(
+                player.current_weapon, (weapon_image_size, weapon_image_size)
+            )
+            screen.blit(weapon_image, (x, y))
+
+            # 圖片右邊顯示武器名稱
+            weapon_text_x = x + weapon_image_size + 10
+            weapon_text = f"武器: {weapon_info['name']}"
+            text_surface = self.font_medium.render(weapon_text, True, COLORS["white"])
+            screen.blit(text_surface, (weapon_text_x, y))
+
+            # 彈藥資訊位置調整到圖片下方，避免重疊
+            ammo_y = y + weapon_image_size + 10  # 圖片高度 + 間距
+
+        except Exception as e:
+            # 如果圖片載入失敗，使用原來的純文字顯示方式
+            print(f"載入武器圖片失敗: {e}")
+            weapon_text = f"武器: {weapon_info['name']}"
+            text_surface = self.font_medium.render(weapon_text, True, COLORS["white"])
+            screen.blit(text_surface, (x, y))
+            ammo_y = y + 25
 
         # 彈藥資訊
-        ammo_y = y + 25
         if weapon_info["is_reloading"]:
             ammo_text = "填裝中..."
             ammo_color = COLORS["yellow"]

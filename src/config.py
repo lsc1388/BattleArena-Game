@@ -20,6 +20,7 @@ COLORS = {
     "purple": (128, 0, 128),
     "gray": (128, 128, 128),
     "dark_gray": (64, 64, 64),
+    "dark_red": (139, 0, 0),
     "gold": (255, 215, 0),
 }
 
@@ -50,6 +51,7 @@ WEAPON_CONFIGS = {
         "fire_rate": 300,  # 毫秒
         "damage": 25,
         "bullet_speed": 10,
+        "image_path": "product20200405201930-p_sub1_130322112553-removebg-preview.png",  # 手槍圖片路徑
     },
     "rifle": {
         "name": "步槍",
@@ -58,6 +60,7 @@ WEAPON_CONFIGS = {
         "fire_rate": 150,
         "damage": 40,
         "bullet_speed": 12,
+        "image_path": "M4_Carbine_with_M203_Grenade_Launcher.png",  # 步槍圖片路徑
     },
     "shotgun": {
         "name": "散彈槍",
@@ -68,6 +71,7 @@ WEAPON_CONFIGS = {
         "bullet_speed": 8,
         "spread": True,  # 散彈效果
         "bullet_count": 5,  # 一次發射子彈數
+        "image_path": "assets/weapons/shotgun.png",  # 霰彈槍圖片路徑
     },
     "machinegun": {
         "name": "機關槍",
@@ -299,6 +303,7 @@ AI_ENEMY_TYPES = {
         "description": "機械化戰鬥單位",
         "damage": 20,
         "attack_frequency": 1500,  # 1.5秒攻擊頻率
+        "image_path": None,  # 機器人暫時使用預設圖形
     },
     "alien": {
         "name": "外星人",
@@ -310,6 +315,7 @@ AI_ENEMY_TYPES = {
         "description": "神秘的外星生物",
         "damage": 35,
         "attack_frequency": 3000,  # 3秒攻擊頻率
+        "image_path": "assets/enemies/alien.png",  # 外星人圖片路徑
     },
     "zombie": {
         "name": "殭屍",
@@ -321,6 +327,7 @@ AI_ENEMY_TYPES = {
         "description": "不死的怪物",
         "damage": 25,
         "attack_frequency": 2000,  # 2秒攻擊頻率
+        "image_path": "assets/enemies/zombie.png",  # 殭屍圖片路徑
     },
     "boss": {
         "name": "BOSS",
@@ -332,6 +339,7 @@ AI_ENEMY_TYPES = {
         "description": "強大的頭目級敵人",
         "damage": 50,
         "attack_frequency": 1200,
+        "image_path": "assets/enemies/boss.png",  # BOSS 圖片路徑
     },
 }
 
@@ -405,6 +413,11 @@ SOUND_CONFIGS = {
         "file_path": "音效/xm2855.wav",
         "volume": 0.5,
         "description": "道具拾取音效 - 拿到道具時播放",
+    },
+    "level3_boss_music": {
+        "file_path": "音效/level3_boss_music.mp3",
+        "volume": 0.9,
+        "description": "第3關BOSS戰專用背景音樂",
     },
 }
 

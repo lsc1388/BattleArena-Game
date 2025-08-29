@@ -172,6 +172,48 @@ class SoundManager:
         """
         self.play_sound("powerup_pickup")
 
+    def play_level3_boss_music(self):
+        """
+        播放第3關BOSS戰專用背景音樂\n
+        \n
+        使用 pygame.mixer.music 播放長時間的背景音樂\n
+        這比 pygame.mixer.Sound 更適合播放大型音樂檔案\n
+        \n
+        使用範例:\n
+        sound_manager.play_level3_boss_music()  # 在第3關BOSS戰開始時播放\n
+        """
+        try:
+            # 停止當前播放的背景音樂
+            pygame.mixer.music.stop()
+
+            # 載入第3關BOSS音樂
+            music_path = SOUND_CONFIGS["level3_boss_music"]["file_path"]
+            pygame.mixer.music.load(music_path)
+
+            # 設定音量
+            volume = SOUND_CONFIGS["level3_boss_music"]["volume"]
+            pygame.mixer.music.set_volume(volume)
+
+            # 播放音樂（循環播放）
+            pygame.mixer.music.play(-1)  # -1 表示無限循環
+
+            print(f"✅ 開始播放第3關BOSS音樂 (音量: {volume})")
+
+        except Exception as e:
+            print(f"❌ 播放第3關BOSS音樂失敗: {e}")
+
+    def stop_background_music(self):
+        """
+        停止背景音樂\n
+        \n
+        停止當前播放的背景音樂\n
+        """
+        try:
+            pygame.mixer.music.stop()
+            print("⏹️ 背景音樂已停止")
+        except Exception as e:
+            print(f"❌ 停止背景音樂失敗: {e}")
+
     def set_master_volume(self, volume):
         """
         設定主音量\n

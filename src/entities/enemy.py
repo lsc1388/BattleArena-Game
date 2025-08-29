@@ -3,6 +3,7 @@ import pygame
 import math
 import random
 from src.config import *
+from src.utils.font_manager import font_manager
 
 ######################物件類別######################
 
@@ -44,8 +45,8 @@ class Enemy:
         self.y = y
         # BOSS 使用較大的尺寸
         if enemy_type == "boss":
-            self.width = ENEMY_SIZE * 3
-            self.height = ENEMY_SIZE * 3
+            self.width = PLAYER_SIZE * 2
+            self.height = PLAYER_SIZE * 2
         else:
             self.width = ENEMY_SIZE
             self.height = ENEMY_SIZE
@@ -53,6 +54,9 @@ class Enemy:
         # 敵人類型設定
         self.enemy_type = enemy_type
         self.type_config = AI_ENEMY_TYPES[enemy_type]
+
+        # 載入敵人圖片
+        self.enemy_image = self._load_enemy_image()
 
         # 難度設定
         self.difficulty = difficulty
@@ -105,6 +109,32 @@ class Enemy:
         # 狀態效果系統
         self.status_effects = {}  # 儲存當前的狀態效果
         self.original_speed = self.speed  # 儲存原始速度（用於凍結後恢復）
+
+    def _load_enemy_image(self):
+        """
+        載入敵人圖片\n
+        \n
+        嘗試載入敵人類型對應的圖片檔案，\n
+        如果載入失敗則回傳 None，使用預設圖形\n
+        \n
+        回傳:\n
+        pygame.Surface or None: 敵人圖片物件，失敗時為 None\n
+        """
+        image_path = self.type_config.get("image_path")
+        if not image_path:
+            # 沒有指定圖片路徑，使用預設圖形
+            return None
+
+        try:
+            # 嘗試載入圖片
+            enemy_image = pygame.image.load(image_path).convert_alpha()
+            # 調整圖片大小到敵人尺寸
+            enemy_image = pygame.transform.scale(enemy_image, (self.width, self.height))
+            return enemy_image
+        except pygame.error as e:
+            # 圖片載入失敗，印出錯誤訊息並使用預設圖形
+            print(f"載入敵人圖片失敗 ({self.enemy_type}): {e}")
+            return None
 
     def update_ai_behavior(self, player, screen_width, screen_height):
         """
@@ -686,11 +716,12 @@ class Enemy:
         """
         繪製敵人\n
         \n
-        根據敵人類型和狀態顯示不同顏色和形狀：\n
+        優先顯示敵人圖片，如果沒有圖片則根據敵人類型和狀態顯示不同顏色和形狀：\n
         - 機器人：金屬灰色，方形\n
         - 外星人：綠色，圓形\n
         - 殭屍：深綠色，不規則形狀\n
         - 受傷狀態：顏色變暗\n
+        - BOSS：在頭上顯示 'BOSS' 文字標籤\n
         \n
         參數:\n
         screen (pygame.Surface): 遊戲畫面物件\n
@@ -698,6 +729,57 @@ class Enemy:
         if not self.is_alive:
             return
 
+        # 如果有敵人圖片，優先使用圖片
+        if self.enemy_image:
+            # 根據血量調整圖片透明度（受傷時變暗）
+            health_ratio = self.health / self.max_health
+            if health_ratio < 0.5:
+                # 血量低時降低透明度
+                alpha = int(255 * (0.5 + health_ratio * 0.5))  # 透明度介於 128-255
+                temp_image = self.enemy_image.copy()
+                temp_image.set_alpha(alpha)
+                screen.blit(temp_image, (self.x, self.y))
+            else:
+                # 血量正常時正常顯示
+                screen.blit(self.enemy_image, (self.x, self.y))
+
+            # 根據狀態效果添加濾鏡效果
+            if "freeze" in self.status_effects:
+                # 冰凍狀態：在圖片上覆蓋淺藍色
+                freeze_overlay = pygame.Surface(
+                    (self.width, self.height), pygame.SRCALPHA
+                )
+                freeze_overlay.fill((173, 216, 230, 100))  # 淺藍色，半透明
+                screen.blit(freeze_overlay, (self.x, self.y))
+            elif "burn" in self.status_effects:
+                # 燃燒狀態：在圖片上覆蓋橙色
+                burn_overlay = pygame.Surface(
+                    (self.width, self.height), pygame.SRCALPHA
+                )
+                burn_overlay.fill((255, 69, 0, 100))  # 橙色，半透明
+                screen.blit(burn_overlay, (self.x, self.y))
+        else:
+            # 沒有圖片時使用預設圖形
+            self._draw_default_shape(screen)
+
+        # 顯示敵人類型指示器（角落標識）
+        self._draw_type_indicator(screen)
+
+        # 若為 BOSS 顯示血條和 BOSS 文字標籤
+        if self.enemy_type == "boss":
+            self._draw_health_bar(screen)
+            self._draw_boss_label(screen)
+
+        # 顯示狀態效果視覺提示
+        self._draw_status_effects(screen)
+
+    def _draw_default_shape(self, screen):
+        """
+        繪製預設的敵人圖形（當沒有圖片時使用）\n
+        \n
+        參數:\n
+        screen (pygame.Surface): 遊戲畫面物件\n
+        """
         # 根據敵人類型決定基本顏色
         base_color = self.type_config["color"]
 
@@ -776,16 +858,6 @@ class Enemy:
             for spot in damage_spots:
                 pygame.draw.rect(screen, COLORS["black"], spot)
 
-        # 顯示敵人類型指示器（角落標識）
-        self._draw_type_indicator(screen)
-
-        # 若為 BOSS 顯示血條
-        if self.enemy_type == "boss":
-            self._draw_health_bar(screen)
-
-        # 顯示狀態效果視覺提示
-        self._draw_status_effects(screen)
-
     def _draw_type_indicator(self, screen):
         """
         繪製敵人類型指示器
@@ -840,6 +912,46 @@ class Enemy:
         pygame.draw.rect(
             screen, (200, 0, 200), (bar_x, bar_y, health_width, bar_height)
         )
+
+    def _draw_boss_label(self, screen):
+        """
+        為 BOSS 敵人在頭上繪製 'BOSS' 文字標籤\n
+        \n
+        使用醒目的紅色文字，位置在敵人上方的中央位置\n
+        \n
+        參數:\n
+        screen (pygame.Surface): 遊戲畫面物件\n
+        """
+        # 設定 BOSS 標籤的文字和顏色
+        boss_text = "BOSS"
+        text_color = (255, 0, 0)  # 紅色
+
+        # 使用 FontManager 渲染文字
+        text_surface = font_manager.render_text(boss_text, "medium", text_color)
+
+        # 計算文字位置（敵人頭頂中央）
+        text_rect = text_surface.get_rect()
+        text_x = self.x + (self.width - text_rect.width) // 2  # 水平置中
+        text_y = self.y - 35  # 在血條上方顯示
+
+        # 繪製半透明背景框讓文字更醒目
+        background_padding = 4
+        background_rect = pygame.Rect(
+            text_x - background_padding,
+            text_y - background_padding,
+            text_rect.width + background_padding * 2,
+            text_rect.height + background_padding * 2,
+        )
+
+        # 繪製黑色半透明背景
+        background_surface = pygame.Surface(
+            (background_rect.width, background_rect.height), pygame.SRCALPHA
+        )
+        background_surface.fill((0, 0, 0, 128))  # 黑色，半透明
+        screen.blit(background_surface, (background_rect.x, background_rect.y))
+
+        # 繪製 BOSS 文字
+        screen.blit(text_surface, (text_x, text_y))
 
     def _draw_status_effects(self, screen):
         """

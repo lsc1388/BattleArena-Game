@@ -2,6 +2,7 @@
 import pygame
 import math
 from src.config import *
+from src.utils.image_manager import image_manager
 
 ######################物件類別######################
 
@@ -25,7 +26,9 @@ class Bullet:
     is_active (bool): 子彈是否仍然有效\n
     """
 
-    def __init__(self, x, y, angle, speed, damage, owner="player"):
+    def __init__(
+        self, x, y, angle, speed, damage, owner="player", weapon_type="pistol"
+    ):
         """
         初始化子彈物件\n
         \n
@@ -36,6 +39,7 @@ class Bullet:
         speed (float): 子彈移動速度，像素/幀\n
         damage (int): 子彈傷害值，範圍 1-100\n
         owner (str): 發射者類型，'player' 或 'enemy'\n
+        weapon_type (str): 武器類型，用於決定子彈外觀\n
         """
         # 位置設定
         self.x = x
@@ -45,6 +49,7 @@ class Bullet:
         # 傷害和所有者
         self.damage = damage
         self.owner = owner
+        self.weapon_type = weapon_type
 
         # 狀態管理
         self.is_active = True
@@ -129,14 +134,41 @@ class Bullet:
         """
         繪製子彈\n
         \n
-        根據發射者類型顯示不同顏色：\n
-        - 玩家子彈：黃色\n
-        - 敵人子彈：紅色\n
+        不同武器類型的子彈有不同外觀：\n
+        - 散彈槍子彈：橙色小圓形顆粒（玩家）或紅色小圓形顆粒（敵人）\n
+        - 其他子彈：根據發射者類型顯示不同顏色的方形子彈\n
+          - 玩家子彈：黃色\n
+          - 敵人子彈：紅色\n
         \n
         參數:\n
         screen (pygame.Surface): 遊戲畫面物件\n
         """
         if not self.is_active:
+            return
+
+        # 散彈槍子彈使用圓形顆粒狀外觀
+        if self.weapon_type == "shotgun":
+            # 根據發射者決定顏色
+            if self.owner == "player":
+                pellet_color = COLORS["orange"]  # 玩家散彈用橙色
+                border_color = COLORS["yellow"]
+            else:
+                pellet_color = COLORS["red"]  # 敵人散彈用紅色
+                border_color = COLORS["dark_red"]
+
+            # 繪製圓形散彈顆粒（比普通子彈小）
+            pellet_radius = self.size // 2 - 1
+            center_x = int(self.x + self.size // 2)
+            center_y = int(self.y + self.size // 2)
+
+            # 繪製散彈顆粒主體
+            pygame.draw.circle(
+                screen, pellet_color, (center_x, center_y), pellet_radius
+            )
+            # 繪製邊框
+            pygame.draw.circle(
+                screen, border_color, (center_x, center_y), pellet_radius, 1
+            )
             return
 
         # 根據發射者決定顏色
@@ -567,7 +599,9 @@ class BulletManager:
         """
         self.bullets = []
 
-    def create_bullet(self, x, y, angle, speed, damage, owner="player"):
+    def create_bullet(
+        self, x, y, angle, speed, damage, owner="player", weapon_type="pistol"
+    ):
         """
         創建新子彈\n
         \n
@@ -578,11 +612,12 @@ class BulletManager:
         speed (float): 子彈移動速度\n
         damage (int): 子彈傷害值\n
         owner (str): 發射者類型\n
+        weapon_type (str): 武器類型，用於決定子彈外觀\n
         \n
         回傳:\n
         Bullet: 新創建的子彈物件\n
         """
-        bullet = Bullet(x, y, angle, speed, damage, owner)
+        bullet = Bullet(x, y, angle, speed, damage, owner, weapon_type)
         self.bullets.append(bullet)
         return bullet
 
