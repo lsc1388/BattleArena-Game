@@ -257,28 +257,12 @@ class Player:
         """
         開始填裝彈藥\n
         \n
-        檢查是否可以填裝：\n
-        - 當前彈夾未滿\n
-        - 有備用彈藥\n
-        - 沒有正在填裝\n
+        無限子彈模式：不需要填裝，直接回傳 False\n
         \n
         回傳:\n
-        bool: 是否成功開始填裝\n
+        bool: 總是回傳 False（無限子彈模式下無需填裝）\n
         """
-        weapon_config = WEAPON_CONFIGS[self.current_weapon]
-        weapon_state = self.weapons[self.current_weapon]
-
-        # 檢查是否需要填裝
-        if (
-            weapon_state["current_ammo"] < weapon_config["max_ammo"]
-            and weapon_state["total_ammo"] > 0
-            and not self.is_reloading
-        ):
-
-            self.is_reloading = True
-            self.reload_start_time = pygame.time.get_ticks()
-            return True
-
+        # 無限子彈模式下不需要填裝
         return False
 
     def update_reload(self):
@@ -314,8 +298,7 @@ class Player:
         檢查是否可以射擊\n
         \n
         條件：\n
-        - 有子彈\n
-        - 沒有在填裝\n
+        - 沒有在填裝（子彈已設為無限，無需檢查彈藥）\n
         - 射擊冷卻時間已過（應用角色射速倍率）\n
         \n
         回傳:\n
@@ -324,9 +307,10 @@ class Player:
         if self.is_reloading:
             return False
 
-        weapon_state = self.weapons[self.current_weapon]
-        if weapon_state["current_ammo"] <= 0:
-            return False
+        # 無限子彈模式 - 移除彈藥檢查
+        # weapon_state = self.weapons[self.current_weapon]
+        # if weapon_state["current_ammo"] <= 0:
+        #     return False
 
         # 檢查射擊冷卻時間（應用角色射速倍率）
         current_time = pygame.time.get_ticks()
@@ -345,7 +329,7 @@ class Player:
         """
         執行射擊動作\n
         \n
-        消耗彈藥並記錄射擊時間\n
+        無限子彈模式 - 不消耗彈藥，只記錄射擊時間\n
         \n
         參數:\n
         target_pos (tuple): 目標位置 (x, y)，如果提供則朝該方向射擊\n
@@ -356,10 +340,10 @@ class Player:
         if not self.can_shoot():
             return None
 
-        # 消耗彈藥
-        weapon_state = self.weapons[self.current_weapon]
-        weapon_config = WEAPON_CONFIGS[self.current_weapon]
-        weapon_state["current_ammo"] -= 1
+        # 無限子彈模式 - 移除彈藥消耗
+        # weapon_state = self.weapons[self.current_weapon]
+        # weapon_config = WEAPON_CONFIGS[self.current_weapon]
+        # weapon_state["current_ammo"] -= 1
 
         # 記錄射擊時間
         self.last_shot_time = pygame.time.get_ticks()
@@ -384,6 +368,7 @@ class Player:
             base_angle = 0
 
         # 準備射擊資料（應用角色攻擊力倍率）
+        weapon_config = WEAPON_CONFIGS[self.current_weapon]
         attack_power_multiplier = self.character_config["attributes"]["attack_power"]
         base_damage = weapon_config["damage"] * attack_power_multiplier
 

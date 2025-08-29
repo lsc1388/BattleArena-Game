@@ -46,7 +46,7 @@ BULLET_DAMAGE = 25
 WEAPON_CONFIGS = {
     "pistol": {
         "name": "手槍",
-        "max_ammo": 12,
+        "max_ammo": 999999,  # 無限彈藥
         "reload_time": 2000,  # 毫秒
         "fire_rate": 300,  # 毫秒
         "damage": 25,
@@ -55,7 +55,7 @@ WEAPON_CONFIGS = {
     },
     "rifle": {
         "name": "步槍",
-        "max_ammo": 30,
+        "max_ammo": 999999,  # 無限彈藥
         "reload_time": 3000,
         "fire_rate": 150,
         "damage": 40,
@@ -64,7 +64,7 @@ WEAPON_CONFIGS = {
     },
     "shotgun": {
         "name": "散彈槍",
-        "max_ammo": 8,
+        "max_ammo": 999999,  # 無限彈藥
         "reload_time": 4000,
         "fire_rate": 800,
         "damage": 70,
@@ -75,7 +75,7 @@ WEAPON_CONFIGS = {
     },
     "machinegun": {
         "name": "機關槍",
-        "max_ammo": 100,
+        "max_ammo": 999999,  # 無限彈藥
         "reload_time": 5000,
         "fire_rate": 100,  # 快速射擊
         "damage": 150,
@@ -83,7 +83,7 @@ WEAPON_CONFIGS = {
     },
     "submachinegun": {
         "name": "衝鋒槍",
-        "max_ammo": 40,
+        "max_ammo": 999999,  # 無限彈藥
         "reload_time": 3500,
         "fire_rate": 120,
         "damage": 120,
