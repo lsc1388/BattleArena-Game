@@ -51,7 +51,7 @@ WEAPON_CONFIGS = {
         "fire_rate": 300,  # 毫秒
         "damage": 25,
         "bullet_speed": 10,
-        "image_path": "assets/weapons/product20200405201930-p_sub1_130322112553__1_-removebg-preview.png",  # 手槍圖片路徑
+        "image_path": "assets/weapons/weapon_pistol.png",  # 手槍圖片路徑
     },
     "rifle": {
         "name": "步槍",
@@ -60,7 +60,7 @@ WEAPON_CONFIGS = {
         "fire_rate": 150,
         "damage": 40,
         "bullet_speed": 12,
-        "image_path": "assets/weapons/M4_Carbine_with_M203_Grenade_Launcher-removebg-preview (1).png",  # 步槍圖片路徑
+        "image_path": "assets/weapons/weapon_rifle.png",  # 步槍圖片路徑
     },
     "shotgun": {
         "name": "散彈槍",
@@ -71,7 +71,7 @@ WEAPON_CONFIGS = {
         "bullet_speed": 8,
         "spread": True,  # 散彈效果
         "bullet_count": 5,  # 一次發射子彈數
-        "image_path": "assets/weapons/shotgun.png",  # 霰彈槍圖片路徑
+        "image_path": "assets/weapons/weapon_shotgun.png",  # 霰彈槍圖片路徑
     },
     "machinegun": {
         "name": "機關槍",
@@ -80,6 +80,7 @@ WEAPON_CONFIGS = {
         "fire_rate": 100,  # 快速射擊
         "damage": 150,
         "bullet_speed": 15,
+        "image_path": "assets/weapons/weapon_machinegun.png",  # 機關槍圖片路徑
     },
     "submachinegun": {
         "name": "衝鋒槍",
@@ -88,6 +89,7 @@ WEAPON_CONFIGS = {
         "fire_rate": 120,
         "damage": 120,
         "bullet_speed": 13,
+        "image_path": "assets/weapons/weapon_submachinegun.png",  # 衝鋒槍圖片路徑
     },
 }
 
@@ -195,8 +197,8 @@ CHARACTER_CONFIGS = {
         "name": "貓",
         "emoji": "🐱",
         "color": (255, 165, 0),  # 橙色
-        "image_path": "assets/characters/cat-removebg-preview.png",  # 角色圖片路徑
-        "fallback_image_path": "assets/characters/cat.jpg",  # 備用圖片路徑
+        "image_path": "assets/characters/character_cat.png",  # 角色圖片路徑
+        "fallback_image_path": "assets/characters/character_cat_fallback.jpg",  # 備用圖片路徑
         "attributes": {
             "attack_power": 1.3,  # 高攻擊力（130%）
             "fire_rate": 0.7,  # 低射速（70%）
@@ -218,8 +220,8 @@ CHARACTER_CONFIGS = {
         "name": "狗",
         "emoji": "🐶",
         "color": (139, 69, 19),  # 棕色
-        "image_path": "assets/characters/dog-removebg-preview.png",  # 角色圖片路徑
-        "fallback_image_path": "assets/characters/dog.jpg",  # 備用圖片路徑
+        "image_path": "assets/characters/character_dog.png",  # 角色圖片路徑
+        "fallback_image_path": "assets/characters/character_dog_fallback.jpg",  # 備用圖片路徑
         "attributes": {
             "attack_power": 1.0,  # 平衡攻擊力（100%）
             "fire_rate": 1.0,  # 平衡射速（100%）
@@ -241,8 +243,8 @@ CHARACTER_CONFIGS = {
         "name": "狼",
         "emoji": "🐺",
         "color": (105, 105, 105),  # 灰色
-        "image_path": "assets/characters/wolf-removebg-preview.png",  # 角色圖片路徑
-        "fallback_image_path": "assets/characters/wolf.jpg",  # 備用圖片路徑
+        "image_path": "assets/characters/character_wolf.png",  # 角色圖片路徑
+        "fallback_image_path": "assets/characters/character_wolf_fallback.jpg",  # 備用圖片路徑
         "attributes": {
             "attack_power": 0.8,  # 低攻擊力（80%）
             "fire_rate": 1.5,  # 高射速（150%）
@@ -391,42 +393,42 @@ DIFFICULTY_CONFIGS = {
 # 音效設定
 SOUND_CONFIGS = {
     "race_start": {
-        "file_path": "音效/race-start-beeps-125125.mp3",
+        "file_path": "assets/sounds/遊戲開始音效.mp3",
         "volume": 0.7,  # 音量 (0.0 到 1.0)
         "description": "場景選擇完成後的開始音效",
     },
     "shotgun": {
-        "file_path": "音效/shotgun-shooting-things-105837.mp3",
+        "file_path": "assets/sounds/散彈槍射擊音效.mp3",
         "volume": 0.8,
         "description": "霰彈槍射擊音效",
     },
     "plasma_gun": {
-        "file_path": "音效/plasma-gun-fire-162136.mp3",
+        "file_path": "assets/sounds/電漿槍射擊音效.mp3",
         "volume": 0.6,
         "description": "步槍和手槍射擊音效",
     },
     "victory": {
-        "file_path": "音效/xm2855.wav",
+        "file_path": "assets/sounds/勝利音效.wav",
         "volume": 0.8,
         "description": "勝利音效 - 遊戲獲勝時播放",
     },
     "death": {
-        "file_path": "音效/8616.wav",
+        "file_path": "assets/sounds/死亡音效.wav",
         "volume": 0.7,
         "description": "死亡音效 - 玩家死亡時播放",
     },
     "skill_use": {
-        "file_path": "音效/11745.wav",
+        "file_path": "assets/sounds/技能使用音效.wav",
         "volume": 0.6,
         "description": "技能音效 - 使用技能時播放",
     },
     "powerup_pickup": {
-        "file_path": "音效/xm2855.wav",
+        "file_path": "assets/sounds/勝利音效.wav",
         "volume": 0.5,
         "description": "道具拾取音效 - 拿到道具時播放",
     },
     "level3_boss_music": {
-        "file_path": "音效/level3_boss_music.mp3",
+        "file_path": "assets/sounds/第三關BOSS背景音樂.mp3",
         "volume": 0.9,
         "description": "第3關BOSS戰專用背景音樂",
     },

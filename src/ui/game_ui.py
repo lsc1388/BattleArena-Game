@@ -45,7 +45,10 @@ class GameUI:
         self.health_bar_pos = (20, 120)  # 調整位置避免與關卡資訊重疊
         self.health_bar_size = (200, 20)
         self.weapon_info_pos = (20, 150)  # 相應調整武器資訊位置
-        self.powerup_list_pos = (20, 230)  # 相應調整強化效果位置，考慮補血包顯示
+        self.powerup_list_pos = (
+            20,
+            320,
+        )  # 調整強化效果位置，避免與武器資訊重疊（武器圖片96px + 彈藥資訊 + 備彈 + 補血包 ≈ 170px，所以從320開始）
         self.score_pos = (screen_width - 220, 20)
         self.skill_cooldown_pos = (screen_width - 220, 90)  # 調整位置避免與命中率重疊
 

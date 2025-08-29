@@ -325,7 +325,7 @@ class PowerUp:
         # 載入星星圖片，如果失敗則畫一個星形
         try:
             # 嘗試載入外部星星圖片
-            star_image_path = "invincibility-star-v0-bveezlamy4bc1-removebg-preview.png"
+            star_image_path = "assets/weapons/powerup_victory_star.png"
             star_image = pygame.image.load(star_image_path).convert_alpha()
             # 調整圖片大小
             star_image = pygame.transform.scale(star_image, (self.size, self.size))
