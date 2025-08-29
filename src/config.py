@@ -470,7 +470,8 @@ LEVEL_CONFIGS = {
         3: {
             "name": "第三關 - 混合來襲與 BOSS",
             "enemy_counts": {"zombie": 7, "alien": 5},
-            "enemy_count": 12,  # 合計數
+            "enemy_count": 12,  # 普通敵人合計數
+            "total_enemy_count": 13,  # 包含BOSS的總數
             "scene": "lava",  # 岩漿背景
             "boss": True,
             "description": "擊敗 7 個殭屍與 5 個外星人，然後擊敗 BOSS",
@@ -497,7 +498,8 @@ LEVEL_CONFIGS = {
         3: {
             "name": "第三關 - 混合來襲與 BOSS",
             "enemy_counts": {"zombie": 10, "alien": 7},
-            "enemy_count": 17,  # 合計數
+            "enemy_count": 17,  # 普通敵人合計數
+            "total_enemy_count": 18,  # 包含BOSS的總數
             "scene": "lava",  # 岩漿背景
             "boss": True,
             "description": "擊敗 10 個殭屍與 7 個外星人，然後擊敗 BOSS",
@@ -524,7 +526,8 @@ LEVEL_CONFIGS = {
         3: {
             "name": "第三關 - 混合來襲與 BOSS",
             "enemy_counts": {"zombie": 15, "alien": 10},
-            "enemy_count": 25,  # 合計數
+            "enemy_count": 25,  # 普通敵人合計數
+            "total_enemy_count": 26,  # 包含BOSS的總數
             "scene": "lava",  # 岩漿背景
             "boss": True,
             "description": "擊敗 15 個殭屍與 10 個外星人，然後擊敗 BOSS",

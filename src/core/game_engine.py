@@ -348,20 +348,21 @@ class GameEngine:
 
         # BOSS 生成邏輯
         if level_config.get("boss", False):
-            total_needed = level_config.get("enemy_count", 0)
-            current_alive_normal = len(
-                [e for e in self.enemies if e.enemy_type != "boss" and e.is_alive]
-            )
+            # 計算需要殺死的普通敵人數量
+            normal_enemy_count = level_config.get("enemy_count", 0)
             killed = self.level_enemies_killed
 
-            if killed >= total_needed and not any(
-                e.enemy_type == "boss" for e in self.enemies
-            ):
+            # 檢查是否已經有BOSS存在
+            boss_exists = any(e.enemy_type == "boss" for e in self.enemies)
+
+            # 當殺死足夠的普通敵人且還沒有BOSS時，生成BOSS
+            if killed >= normal_enemy_count and not boss_exists:
                 boss_x = SCREEN_WIDTH // 2 - ENEMY_SIZE * 3 // 2
                 boss_y = 80
                 boss = Enemy(boss_x, boss_y, self.enemy_difficulty, "boss")
                 self.enemies.append(boss)
                 self.game_ui.add_message("BOSS 出現！", "achievement", COLORS["purple"])
+                print(f"BOSS已生成！普通敵人已殺死: {killed}/{normal_enemy_count}")
                 return
 
         # 一般敵人生成
@@ -456,6 +457,7 @@ class GameEngine:
         """
         更新敵人狀態\n
         """
+        level_config = LEVEL_CONFIGS[self.selected_difficulty][self.current_level]
         enemies_killed_this_frame = 0
         for enemy in self.enemies[:]:
             if enemy.is_alive:
@@ -494,6 +496,7 @@ class GameEngine:
                 # 檢查是否為BOSS
                 if enemy.enemy_type == "boss":
                     # BOSS死亡時生成勝利星星
+                    print(f"BOSS已被擊敗！在位置 ({enemy.x}, {enemy.y}) 生成勝利星星")
                     self.powerup_manager.spawn_victory_star_on_boss_death(
                         enemy.x, enemy.y
                     )
@@ -506,6 +509,9 @@ class GameEngine:
                 else:
                     # 一般敵人死亡時可能掉落道具
                     self.powerup_manager.spawn_powerup_on_enemy_death(enemy.x, enemy.y)
+                    print(
+                        f"擊敗 {enemy.enemy_type} 敵人，關卡進度: {self.level_enemies_killed + 1}/{level_config.get('enemy_count', 0)}"
+                    )
 
                 self.game_ui.add_message(f"+100 分", "achievement", COLORS["yellow"])
 
@@ -552,14 +558,36 @@ class GameEngine:
         if not self.game_completed:
             current_enemy_count = len([e for e in self.enemies if e.is_alive])
             level_config = LEVEL_CONFIGS[self.selected_difficulty][self.current_level]
-            remaining_enemies_needed = (
-                level_config["enemy_count"] - self.level_enemies_killed
-            )
 
-            if current_enemy_count == 0 and remaining_enemies_needed > 0:
-                self._spawn_enemy()
-            elif current_enemy_count < 2 and remaining_enemies_needed > 1:
-                self._spawn_enemy()
+            # 對於BOSS關卡，只計算普通敵人
+            if level_config.get("boss", False):
+                normal_enemy_count = level_config.get("enemy_count", 0)
+                remaining_enemies_needed = (
+                    normal_enemy_count - self.level_enemies_killed
+                )
+
+                # 檢查是否已經有BOSS
+                boss_exists = any(e.enemy_type == "boss" for e in self.enemies)
+
+                # 如果還需要普通敵人且沒有太多敵人在場上
+                if remaining_enemies_needed > 0 and not boss_exists:
+                    if current_enemy_count == 0:
+                        self._spawn_enemy()
+                    elif current_enemy_count < 2 and remaining_enemies_needed > 1:
+                        self._spawn_enemy()
+                # 如果普通敵人殺完了但還沒有BOSS，嘗試生成BOSS
+                elif remaining_enemies_needed <= 0 and not boss_exists:
+                    self._spawn_enemy()  # 這會觸發BOSS生成邏輯
+            else:
+                # 一般關卡的敵人生成邏輯
+                remaining_enemies_needed = (
+                    level_config["enemy_count"] - self.level_enemies_killed
+                )
+
+                if current_enemy_count == 0 and remaining_enemies_needed > 0:
+                    self._spawn_enemy()
+                elif current_enemy_count < 2 and remaining_enemies_needed > 1:
+                    self._spawn_enemy()
 
     def _check_level_completion(self):
         """
@@ -576,10 +604,11 @@ class GameEngine:
                 e.enemy_type == "boss" and e.is_alive for e in self.enemies
             )
 
-            # 所有一般敵人已被擊敗且BOSS已死亡
-            if not boss_alive and self.level_enemies_killed >= level_config.get(
-                "enemy_count", 0
-            ):
+            # 普通敵人的目標數量
+            normal_enemy_count = level_config.get("enemy_count", 0)
+
+            # 所有普通敵人已被擊敗且BOSS已死亡
+            if not boss_alive and self.level_enemies_killed >= normal_enemy_count:
                 # 檢查玩家是否收集到勝利星星
                 if (
                     hasattr(self.player, "victory_star_collected")
@@ -595,7 +624,20 @@ class GameEngine:
                     self.game_completed = True
                     self.enemies.clear()
                     return
-                # 如果星星還在場上但玩家還沒收集，不結束遊戲
+                # 如果星星還在場上但玩家還沒收集，顯示提示
+                elif (
+                    not hasattr(self.player, "victory_star_collected")
+                    or not self.player.victory_star_collected
+                ):
+                    # 檢查是否有勝利星星在場上
+                    if not self.powerup_manager.has_victory_star():
+                        # 沒有勝利星星，可能是BOSS剛死亡但星星還沒生成，等待一下
+                        pass
+                    else:
+                        # 有勝利星星但玩家還沒收集
+                        self.game_ui.add_message(
+                            "收集勝利星星以獲得勝利！", "info", COLORS["yellow"]
+                        )
                 return
 
         # 一般關卡檢查
